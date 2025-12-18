@@ -166,6 +166,9 @@ y patrones generales sin comprometer la privacidad de los usuarios.
 
 ![Métricas](./assets/admin_metrics.png)
 
+## 📱 Aplicacion
+Aqui se encuentra la version mas reciente de la aplicacion funcional
+**https://drive.google.com/drive/folders/140XtOwL9mARh9jXOcAi8ctMQY_FcVrKK?usp=drive_link** 
 
 ## 🔨 Instalación
 
