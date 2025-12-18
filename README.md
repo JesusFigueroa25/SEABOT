@@ -61,13 +61,7 @@ El sistema no reemplaza la atención psicológica profesional, sino que actúa c
 
 ---
 
-## 🔨 Instalación
 
-### Backend
-
-1. Clona el repositorio del backend:
-```bash
-git clone https://github.com/TU_USUARIO/seabot-backend.git
 
 
 ## 📸 Ejecución
@@ -171,3 +165,12 @@ Vista de métricas agregadas del sistema, que permite analizar el uso de la plat
 y patrones generales sin comprometer la privacidad de los usuarios.
 
 ![Métricas](./assets/admin_metrics.png)
+
+
+## 🔨 Instalación
+
+### Backend
+
+1. Clona el repositorio del backend:
+```bash
+git clone https://github.com/TU_USUARIO/seabot-backend.git
