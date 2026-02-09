@@ -6,16 +6,6 @@ El proyecto integra **modelos de lenguaje generativo (GPT-4)** y técnicas de **
 
 ---
 
-## 📂 Repositorio del backend
-
-https://github.com/TU_USUARIO/seabot-backend
-
-## 📂 Repositorio del frontend
-
-https://github.com/TU_USUARIO/seabot-frontend
-
----
-
 ## 📝 Descripción
 
 SEABOT es una aplicación móvil de apoyo emocional diseñada para estudiantes universitarios que presentan síntomas de estrés, ansiedad o depresión.  
