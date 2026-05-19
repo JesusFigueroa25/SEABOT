@@ -2,7 +2,8 @@ from sqlalchemy.orm import Session
 from app.models.phqResult_model import PhqResult
 from app.schemas.phqResult_schemas import PhqResultCreate, PhqResultUpdate
 from sqlalchemy import desc, asc
-from datetime import date
+from datetime import date, timedelta
+
 
 def create(db: Session, objeto: PhqResultCreate):
     #Colocar todos los atributos correctos
@@ -52,10 +53,12 @@ def get_last_8_by_student(db: Session, student_id: int):
         .all()
     )
 
-def has_taken_today(db: Session, student_id: int) -> bool:
-    today = date.today()
+def has_taken_recently(db: Session, student_id: int) -> bool:
+    limit_date = date.today() - timedelta(days=14)
+
     result = db.query(PhqResult).filter(
         PhqResult.student_id == student_id,
-        PhqResult.fecha == today
+        PhqResult.fecha >= limit_date
     ).first()
+
     return result is not None

@@ -13,12 +13,6 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copiar archivo de credenciales del NLP (tu archivo real)
-COPY fiery-chess-471215-k9-d39d8968a3b9.json /app/google-credentials.json
-
-# Variable de entorno que Google NLP usa para autenticación
-ENV GOOGLE_APPLICATION_CREDENTIALS="/app/google-credentials.json"
-
 # Copiar todo el proyecto
 COPY . .
 

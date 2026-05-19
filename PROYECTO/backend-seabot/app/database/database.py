@@ -2,8 +2,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 
 # URL de conexión a PostgreSQL
-#DATABASE_URL = "postgresql://postgres:password@localhost:5432/seabot_db"
-DATABASE_URL = "postgresql://postgres:seaBot_251003@34.95.132.202/sea_db"
+DATABASE_URL = "postgresql://postgres:seaBot_251003@34.135.157.11/seabot-db"
 
 
 # Crear motor de conexión

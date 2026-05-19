@@ -37,6 +37,6 @@ def create(objecto: PhqResultCreate, db: Session = Depends(get_db)):
     phqResult_service.register(db, objecto)
     
 @router.get("/check/{student_id}")
-def check_today(student_id: int, db: Session = Depends(get_db)):
-    taken = phqResult_repository.has_taken_today(db, student_id)
-    return {"taken_today": taken}
+def check_recent(student_id: int, db: Session = Depends(get_db)):
+    taken = phqResult_repository.has_taken_recently(db, student_id)
+    return {"taken_recently": taken}

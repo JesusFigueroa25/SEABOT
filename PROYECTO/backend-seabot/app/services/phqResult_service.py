@@ -27,7 +27,7 @@ def list_phq(db: Session, student_id: int):
 
 def registerPHQ(db: Session, objecto: PhqResultCreate):
     # 🔹 Verificar si ya existe un test hoy
-    if phqResult_repository.has_taken_today(db, objecto.student_id):
+    if phqResult_repository.has_taken_recently(db, objecto.student_id):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Ya realizaste el test PHQ-9 hoy. Intenta nuevamente mañana."

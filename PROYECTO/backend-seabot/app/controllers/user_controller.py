@@ -1,10 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi import status
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from app.database.database import get_db
-from app.schemas.user_schema import UserOut, UserCreate, UserUpdate, UserGetEnable, UserEnable,UserGetLogin
+from app.models.student_model import Student
+from app.models.user_model import User
+from app.schemas.user_schema import UserOut, UserCreate, UserUpdate, UserGetEnable, UserEnable,UserGetLogin, ForgotPasswordRequest, ResetPasswordRequest
 from app.schemas.student_schema import StudentOut
-from app.services import user_service
+from app.security.auth import hash_password
+from app.services import user_service, user_recovery_service
 from app.services import student_service
 from fastapi import Query
 from fastapi.security import OAuth2PasswordRequestForm
@@ -70,16 +74,7 @@ def get_metricas(db: Session = Depends(get_db)):
             "conversaciones":totalConvEnable,
             "recursos":totalRecEnable}    
     
-#Login
-@router.post("/login/user/", response_model=Token)
-def login(user: UserLogin, db: Session = Depends(get_db)):
-    return user_service.login_user(db, user.nameuser, user.password)
-
-@router.post("/login/admin/", response_model=TokenAdmin)
-def login(user: UserLogin, db: Session = Depends(get_db)):
-    return user_service.login_admin(db, user.nameuser, user.password)
-
-# login_unificado
+#LOGIN
 @router.post("/login/", response_model=TokenLogin)
 def login(user: UserLogin, db: Session = Depends(get_db)):
     return user_service.login(db, user.nameuser, user.password)
@@ -92,6 +87,77 @@ def get_obj(object_id: int, db: Session = Depends(get_db)):
                             detail="Object not found")
     return Objecto
 
+#FORGOT & RESET PASSWORD
+@router.post("/forgot-password")
+def forgot_password(payload: ForgotPasswordRequest, db: Session = Depends(get_db)):
+    return user_recovery_service.request_password_reset(db, payload.correo)
 
 
-    
+@router.post("/reset-password")
+def reset_password(payload: ResetPasswordRequest, db: Session = Depends(get_db)):
+    return user_recovery_service.reset_password(
+        db,
+        payload.codigo,
+        payload.new_password
+    )
+ 
+    nameuser_clean = payload.nameuser.strip()
+    correo_clean = payload.correo.strip().lower()
+
+    existing_user = db.query(User).filter(
+        func.lower(User.nameuser) == nameuser_clean.lower()
+    ).first()
+
+    if existing_user:
+        raise HTTPException(
+            status_code=409,
+            detail="El nombre de usuario ya existe"
+        )
+
+    existing_email = db.query(Student).filter(
+        func.lower(Student.correo) == correo_clean
+    ).first()
+
+    if existing_email:
+        raise HTTPException(
+            status_code=409,
+            detail="El correo ya está registrado"
+        )
+
+    try:
+        db_user = User(
+            nameuser=nameuser_clean,
+            password=hash_password(payload.password),
+            enable=True,
+            role="user",
+        )
+
+        db.add(db_user)
+        db.flush()
+
+        db_student = Student(
+            alias=nameuser_clean,
+            safe_contact=payload.safe_contact,
+            correo=correo_clean,
+            user_id=db_user.id,
+        )
+
+        db.add(db_student)
+        db.commit()
+        db.refresh(db_user)
+        db.refresh(db_student)
+
+        return {
+            "user_id": db_user.id,
+            "student_id": db_student.id,
+            "nameuser": db_user.nameuser,
+            "correo": db_student.correo,
+            "role": db_user.role,
+        }
+
+    except Exception:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail="No se pudo completar el registro"
+        )

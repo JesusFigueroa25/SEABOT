@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from jose import jwt, JWTError
 from passlib.context import CryptContext
 
-SECRET_KEY = "cambia-esta-clave-super-secreta"  # ⚠️ mover a .env
+SECRET_KEY = "neme"  # ⚠️ mover a .env
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 

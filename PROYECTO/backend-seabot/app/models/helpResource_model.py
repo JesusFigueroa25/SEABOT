@@ -9,8 +9,6 @@ class HelpResource(Base):
     id = Column(Integer, primary_key=True, index=True)
     name_resource = Column(String(100))  
     enable = Column(Boolean)
-    #Nuevas Columnsa
-    # 🟣 Nuevas columnas añadidas
-    description = Column(Text, nullable=True)          # Descripción o resumen del recurso
-    resource_type = Column(String(50), nullable=True)  # Tipo de recurso (Video, Artículo, Guía, etc.)
-    url = Column(Text, nullable=True)                  # Enlace o ubicación del recurso
+    description = Column(Text, nullable=True)           
+    resource_type = Column(String(50), nullable=True)  
+    url = Column(Text, nullable=True)                 

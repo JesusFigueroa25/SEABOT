@@ -2,8 +2,11 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from fastapi import status
 from app.database.database import get_db
+from app.models.student_model import Student
 from app.schemas.student_schema import StudentOut, StudentCreate, StudentUpdate, StudentGet
 from app.services import student_service
+from sqlalchemy import func
+
 
 router = APIRouter(prefix="/students", tags=["Estudiantes"])
 
@@ -29,3 +32,9 @@ def update(Obj_id: int, objecto: StudentUpdate, db: Session = Depends(get_db)):
 @router.delete("/{Obj_id}")
 def delete(Obj_id: int, db: Session = Depends(get_db)):
     return student_service.remove(db, Obj_id)
+
+#Funcionalidad
+@router.get("/exists/correo/{correo}")
+def exists_correo(correo: str, db: Session = Depends(get_db)):
+    exists = student_service.exists_by_correo(db, correo)
+    return {"exists": exists}

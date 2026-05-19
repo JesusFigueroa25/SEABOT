@@ -5,6 +5,7 @@ from app.schemas.user_schema import UserOut
 class StudentBase(BaseModel):
     alias: str
     safe_contact: str
+    correo: Optional[str] = None
 
 class StudentCreate(StudentBase):
     user_id: int

@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from app.database.database import Base, engine
-from app.controllers import  user_controller,student_controller,diaryEntry_controller,emotionalRegister_controller,helpResource_controller,phqResult_controller,conversation_controller,message_controller,summary_controller,reports_controller
+from app.controllers import  user_controller,student_controller,diaryEntry_controller,emotionalRegister_controller,helpResource_controller,phqResult_controller,conversation_controller,message_controller,summary_controller,reports_controller, habit_controller, support_report_controller
 
 # Crear las tablas automáticamente en la BD
 Base.metadata.create_all(bind=engine)
@@ -9,8 +9,10 @@ Base.metadata.create_all(bind=engine)
 app = FastAPI(title="SeaBot API", version="1.0")
 
 # Incluir routers (endpoints)
+app.include_router(support_report_controller.router)
 app.include_router(user_controller.router)
 app.include_router(student_controller.router)
+app.include_router(habit_controller.router)
 
 app.include_router(diaryEntry_controller.router)
 app.include_router(emotionalRegister_controller.router)
@@ -22,6 +24,7 @@ app.include_router(message_controller.router)
 app.include_router(summary_controller.router)
 
 app.include_router(reports_controller.router)
+
 
 
 

@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.repositories import conversation_repository
 from app.schemas.conversation_schemas import ConversationCreate, ConversationUpdate, ConversationUpdateName, ConversationUpdateCal, ConversationCreateOpenAI
 from app.models.student_model import Student 
+import os
 
 def register(db: Session, objecto: ConversationCreate):
     return conversation_repository.create(db, objecto)
@@ -40,7 +41,7 @@ def modifyCalification(db: Session,
 
 #Crear Conversacion de OpenAI
 
-client = OpenAI(api_key="APIKEY")
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 MAX_ACTIVE_CONVS = 3
 
 def registerOpenAI(db: Session, objeto: ConversationCreateOpenAI) :  

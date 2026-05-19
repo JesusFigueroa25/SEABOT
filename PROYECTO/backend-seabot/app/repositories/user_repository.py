@@ -2,24 +2,39 @@ from sqlalchemy.orm import Session
 #from sqlalchemy.orm import Session,asc, desc
 from app.models.student_model import Student
 from app.models.user_model import User
+from sqlalchemy import func
 from app.models.conversation_model import Conversation
 from app.models.helpResource_model import HelpResource
+from app.security.auth import hash_password
 from app.schemas.user_schema import UserCreate, UserUpdate, UserEnable
-
-#Cambiar de clase "schema"
+from fastapi import HTTPException, status
+from sqlalchemy.exc import IntegrityError
 
 def create(db: Session, objeto: UserCreate):
-    #Colocar todos los atributos correctos
+    nameuser_clean = objeto.nameuser.strip()
+
+    existing_user = db.query(User).filter(
+        func.lower(User.nameuser) == nameuser_clean.lower()
+    ).first()
+
+    if existing_user:
+        raise HTTPException(
+            status_code=409,
+            detail="El nombre de usuario ya existe"
+        )
+
     db_object = User(
-        nameuser=objeto.nameuser,
-        password=objeto.password,
+        nameuser=nameuser_clean, 
+        password=hash_password(objeto.password),
         enable=objeto.enable,
         role=objeto.role,
     )
+
     db.add(db_object)
     db.commit()
     db.refresh(db_object)
     return db_object
+
 
 def get(db: Session):
     return db.query(User).all()

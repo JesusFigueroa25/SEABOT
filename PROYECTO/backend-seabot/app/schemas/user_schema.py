@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr, Field
 from datetime import datetime
 from typing import List
 
@@ -28,6 +28,10 @@ class UserOut(UserBase):
     id: int
     class Config:
         from_attributes = True
+        
+        
+        
+
 
 #LOGIN
 
@@ -51,3 +55,11 @@ class TokenLogin(BaseModel):
 class TokenAdmin(BaseModel):
     access_token: str
     token_type: str
+    
+#RECUPERAR CONTRASEÑA
+class ForgotPasswordRequest(BaseModel):
+    correo: EmailStr
+
+class ResetPasswordRequest(BaseModel):
+    codigo: str
+    new_password: str = Field(..., min_length=4, max_length=100)    

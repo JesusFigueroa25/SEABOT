@@ -41,53 +41,39 @@ def totalRecursosEnable(db: Session):
     return user_repository.totalRecursosEnable(db)
  
  
- #Login
-
-#LOGINS
-def login_user(db: Session, username: str, password: str):
-    db_user = user_repository.get_by_name_user(db, username)
-    student_id = user_repository.getStudentID(db, db_user)
-    if not db_user or db_user.role != "user" or not db_user.enable:
-        raise HTTPException(status_code=401, detail="Usuario no autorizado")
-
-    if password != db_user.password:  
-        raise HTTPException(status_code=401, detail="Credenciales inválidas")
-
-    access_token = auth.create_access_token({"sub": db_user.nameuser})
-    return {"access_token": access_token, "token_type": "bearer", "student_id":student_id, "id":db_user.id}
-
-
-
-def login_admin(db: Session, username: str, password: str):
-    db_admin = user_repository.get_by_name_admin(db, username)
-    if not db_admin or db_admin.role != "admin" or not db_admin.enable:
-        raise HTTPException(status_code=401, detail="Admin no autorizado")
-
-    if password != db_admin.password:  
-        raise HTTPException(status_code=401, detail="Credenciales inválidas")
-    
-    access_token = auth.create_access_token({"sub": db_admin.nameuser})
-    return {"access_token": access_token, "token_type": "bearer"}
-
+#LOGIN
 def login(db: Session, username: str, password: str):
-    db_user = user_repository.get_by_name(db, username)
+    username_clean = username.strip()
 
-    if not db_user or not db_user.enable:
-        raise HTTPException(status_code=401, detail="Usuario no autorizado")
+    db_user = user_repository.get_by_name(db, username_clean)
 
-    # 🔐 Validar contraseña
-    if password != db_user.password:  
-        raise HTTPException(status_code=401, detail="Credenciales inválidas")
+    if not db_user:
+        raise HTTPException(
+            status_code=404,
+            detail="El usuario no existe"
+        )
 
-    # 🧠 Si es un estudiante -> buscar id_student
+    if not db_user.enable:
+        raise HTTPException(
+            status_code=403,
+            detail="Usuario desactivado"
+        )
+
+    if not auth.verify_password(password, db_user.password):
+        raise HTTPException(
+            status_code=401,
+            detail="Contraseña incorrecta"
+        )
+
     student_id = None
     if db_user.role == "user":
         student_id = user_repository.getStudentID(db, db_user)
 
-    # 🎟️ Generar token de acceso
-    access_token = auth.create_access_token({"sub": db_user.nameuser, "role": db_user.role})
+    access_token = auth.create_access_token({
+        "sub": db_user.nameuser,
+        "role": db_user.role
+    })
 
-    # 🧩 Respuesta según tipo
     return {
         "access_token": access_token,
         "token_type": "bearer",

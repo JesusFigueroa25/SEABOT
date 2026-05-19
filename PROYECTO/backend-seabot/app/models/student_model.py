@@ -10,6 +10,9 @@ class Student(Base):
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, unique=True)
     alias = Column(String(50), nullable=False)  
     safe_contact = Column(String(10), nullable=False)
+    correo = Column(String(120), unique=True, nullable=True, index=True)
+    correo_verificado = Column(Boolean, nullable=False, default=False)
+    correo_verified_at = Column(DateTime, nullable=True)
 
      # Relaciones 1:1
     user = relationship("User", back_populates="student")
@@ -18,3 +21,4 @@ class Student(Base):
     diaryEntries = relationship("DiaryEntry", back_populates="student")
     emotionalRegisters = relationship("EmotionalRegister", back_populates="student")
     conversations = relationship("Conversation", back_populates="student")
+    reports = relationship("SupportReport", back_populates="student", cascade="all, delete-orphan")

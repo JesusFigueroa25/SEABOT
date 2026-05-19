@@ -22,3 +22,6 @@ def remove(db: Session, object_id: int):
 #Funcionalidades
 def getUsersDetail(db: Session, object_id: int):
     return student_repository.getUsersDetail(db,object_id)
+
+def exists_by_correo(db: Session, correo: str) -> bool:
+    return student_repository.exists_by_correo(db, correo)

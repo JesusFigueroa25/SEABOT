@@ -1,15 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from sqlalchemy.orm import Session
-from fastapi import status
 from app.database.database import get_db
 from app.models.message_model import Message
 from app.schemas.message_schemas import MessageOut, MessageCreate, MessageOutDebug, MessageUpdate, MessageInput
 from app.services import message_service
 from typing import Any
-
-
+from fastapi.responses import StreamingResponse
 from app.services.message_service import analyze_sentiment
-from fastapi import APIRouter
 from google.cloud import language_v1
 
 router = APIRouter(prefix="/messages", tags=["Mensajes"])
@@ -40,8 +37,8 @@ def get_messages(conversation_id: int, db: Session = Depends(get_db)):
     return message_service.listarMessageByConvID(db, conversation_id)
 
 @router.post("/createMessages", response_model=MessageOut, status_code=status.HTTP_201_CREATED)
-def create(objecto: MessageInput, db: Session = Depends(get_db)):
-    return message_service.create_message(db, objecto)
+def create(objecto: MessageInput, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+    return message_service.create_message(db, objecto, background_tasks)
 
 @router.get("/GetLast3Messages/{conversation_id}", response_model=list[MessageOut])
 def get_messages(conversation_id: int, db: Session = Depends(get_db)):
@@ -160,4 +157,20 @@ def fix_sentiments_by_conversation(conversations: list[int], db: Session = Depen
         "mensajes": updated
     }
     
-    
+#Streaming
+
+@router.post("/createMessages/stream")
+def create_stream(
+    objecto: MessageInput,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db)
+):
+    return StreamingResponse(
+        message_service.create_message_stream(db, objecto, background_tasks),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+            "Connection": "keep-alive",
+        }
+    )
