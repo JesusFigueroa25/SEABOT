@@ -67,8 +67,17 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
               FutureBuilder<List<WeeklyActivity>>(
                 future: actividadSemanal,
                 builder: (context, snapshot) {
-                  if (!snapshot.hasData)
+                  if (snapshot.connectionState == ConnectionState.waiting) {
                     return _loadingCard("Actividad Semanal");
+                  }
+
+                  if (snapshot.hasError) {
+                    return _connectionErrorCard("Actividad Semanal", () {
+                      setState(() {
+                        actividadSemanal = _service.getWeeklyActivity();
+                      });
+                    });
+                  }
                   return _cardTemplate(
                     title: "Actividad semanal del usuario",
                     content: currentView == ReportViewType.chart
@@ -84,7 +93,28 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
               FutureBuilder<List<EmotionCount>>(
                 future: emociones,
                 builder: (context, snapshot) {
-                  if (!snapshot.hasData) return _loadingCard("Emociones");
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return _loadingCard("Emociones");
+                  }
+
+                  if (snapshot.hasError) {
+                    return _connectionErrorCard("Emociones", () {
+                      setState(() {
+                        emociones = _service.getEmotions();
+                      });
+                    });
+                  }
+
+                  if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                    return _cardTemplate(
+                      title: "Distribución de emociones detectadas",
+                      content: Text(
+                        "No hay datos disponibles.",
+                        style: GoogleFonts.manrope(),
+                      ),
+                    );
+                  }
+
                   return _cardTemplate(
                     title: "Distribución de emociones detectadas",
                     content: currentView == ReportViewType.chart
@@ -100,7 +130,28 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
               FutureBuilder<PhqPromedio>(
                 future: phqPromedio,
                 builder: (context, snapshot) {
-                  if (!snapshot.hasData) return _loadingCard("PHQ-9");
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return _loadingCard("PHQ-9");
+                  }
+
+                  if (snapshot.hasError) {
+                    return _connectionErrorCard("PHQ-9", () {
+                      setState(() {
+                        phqPromedio = _service.getPhqPromedio();
+                      });
+                    });
+                  }
+
+                  if (!snapshot.hasData) {
+                    return _cardTemplate(
+                      title: "PHQ-9 Pretest vs Postest",
+                      content: Text(
+                        "No hay datos disponibles.",
+                        style: GoogleFonts.manrope(),
+                      ),
+                    );
+                  }
+
                   return _cardTemplate(
                     title: "PHQ-9 Pretest vs Postest",
                     content: currentView == ReportViewType.chart
@@ -116,8 +167,31 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
               FutureBuilder<UsabilidadResultados>(
                 future: usabilidad,
                 builder: (context, snapshot) {
-                  if (!snapshot.hasData)
+                  if (snapshot.connectionState == ConnectionState.waiting) {
                     return _loadingCard("Usabilidad y Satisfacción");
+                  }
+
+                  if (snapshot.hasError) {
+                    return _connectionErrorCard(
+                      "Usabilidad y Satisfacción",
+                      () {
+                        setState(() {
+                          usabilidad = _service.getUsabilidad();
+                        });
+                      },
+                    );
+                  }
+
+                  if (!snapshot.hasData) {
+                    return _cardTemplate(
+                      title: "Indicadores de Usabilidad",
+                      content: Text(
+                        "No hay datos disponibles.",
+                        style: GoogleFonts.manrope(),
+                      ),
+                    );
+                  }
+
                   return _cardTemplate(
                     title: "Indicadores de Usabilidad",
                     content: currentView == ReportViewType.chart
@@ -331,7 +405,7 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      child: DataTable(  
+      child: DataTable(
         columns: const [
           DataColumn(label: Text("Categoría")),
           DataColumn(label: Text("Total")),
@@ -347,6 +421,27 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
             ],
           );
         }),
+      ),
+    );
+  }
+
+  Widget _connectionErrorCard(String title, VoidCallback onRetry) {
+    return _cardTemplate(
+      title: title,
+      content: Column(
+        children: [
+          const Icon(Icons.wifi_off_rounded, color: Colors.redAccent, size: 40),
+          const SizedBox(height: 12),
+          Text(
+            "Sin conexión a internet",
+            style: GoogleFonts.manrope(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: Colors.redAccent,
+            ),
+          ),
+          const SizedBox(height: 10),
+        ],
       ),
     );
   }

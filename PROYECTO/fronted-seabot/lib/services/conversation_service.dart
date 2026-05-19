@@ -3,8 +3,7 @@ import 'package:http/http.dart' as http;
 import '../models/conversation.dart';
 
 class ConversationService {
- final String baseUrl = "https://seabot-backend-260367329176.southamerica-west1.run.app/conversations";
- //final String baseUrl = "http://10.0.2.2:8080/conversations";
+  final String baseUrl = "https://seabot-backend-993787742289.us-central1.run.app/conversations";
 
   Future<List<Conversation>> getAllConversations() async {
     final response = await http.get(Uri.parse("$baseUrl/"));
@@ -15,6 +14,7 @@ class ConversationService {
       throw Exception("Error al obtener conversaciones");
     }
   }
+   
 
   Future<Conversation> getConversationById(int id) async {
     final response = await http.get(Uri.parse("$baseUrl/$id"));

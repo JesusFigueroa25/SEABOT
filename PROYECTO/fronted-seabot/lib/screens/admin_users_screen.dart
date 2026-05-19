@@ -37,7 +37,9 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
           ),
         ),
         child: AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           title: Row(
             children: [
               const Icon(Icons.person, color: AppColors.primary),
@@ -80,7 +82,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
               const Divider(height: 20),
               _buildInfoTile("Alias", estudiante.alias ?? "-"),
               _buildInfoTile("Contacto seguro", estudiante.safeContact ?? "-"),
-              _buildInfoTile("Rol", estudiante.user?.role ?? "Sin rol"),
+              _buildInfoTile("Rol", estudiante.user?.role ?? "user"),
             ],
           ),
           actions: [
@@ -132,7 +134,9 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
           ),
         ),
         child: AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           title: Text(
             yaBloqueado ? "Bloquear usuario" : "Desbloquear usuario",
             style: GoogleFonts.manrope(
@@ -153,12 +157,16 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor:
-                    yaBloqueado ? Colors.redAccent : AppColors.secundary,
+                backgroundColor: yaBloqueado
+                    ? Colors.redAccent
+                    : AppColors.secundary,
               ),
               onPressed: () async {
                 Map<String, dynamic> resultResponse = {"enable": !yaBloqueado};
-                await serviceController.updateEnable(usuario.id, resultResponse);
+                await serviceController.updateEnable(
+                  usuario.id,
+                  resultResponse,
+                );
                 Navigator.pop(context);
 
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -168,8 +176,9 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                           ? "${usuario.nameuser} fue desbloqueado ✅"
                           : "${usuario.nameuser} fue bloqueado ❌",
                     ),
-                    backgroundColor:
-                        !yaBloqueado ? Colors.green : Colors.redAccent,
+                    backgroundColor: !yaBloqueado
+                        ? Colors.green
+                        : Colors.redAccent,
                   ),
                 );
 
@@ -185,6 +194,34 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                 ),
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildConnectionError() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.wifi_off_rounded,
+              size: 48,
+              color: Colors.redAccent,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              "Sin conexión a internet",
+              style: GoogleFonts.manrope(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: Colors.redAccent,
+              ),
+            ),
+            const SizedBox(height: 16),
           ],
         ),
       ),
@@ -226,12 +263,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
             } else if (snapshot.hasError) {
-              return Center(
-                child: Text(
-                  "Error: ${snapshot.error}",
-                  style: GoogleFonts.manrope(color: Colors.redAccent),
-                ),
-              );
+              return _buildConnectionError();
             } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
               return Center(
                 child: Text(
@@ -255,7 +287,10 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
 
                 return Card(
                   color: Colors.white,
-                  margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  margin: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -267,8 +302,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                           : Colors.redAccent.withOpacity(0.2),
                       child: Icon(
                         activo ? Icons.person : Icons.block,
-                        color:
-                            activo ? AppColors.secundary : Colors.redAccent,
+                        color: activo ? AppColors.secundary : Colors.redAccent,
                       ),
                     ),
                     title: Text(

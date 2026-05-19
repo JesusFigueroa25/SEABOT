@@ -27,21 +27,22 @@ class LocalDatabase {
         // Tabla de conversaciones
         await db.execute('''
           CREATE TABLE conversations (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            student_id INTEGER,
+            id INTEGER PRIMARY KEY,
+            student_id INTEGER  NOT NULL,
             openai_id TEXT,
             name_conversation TEXT,
-            qualification INTEGER,
+            qualification INTEGER DEFAULT 0,
             fecha_inicio TEXT,
-            enable INTEGER
+            enable INTEGER DEFAULT 1,
+            is_pending INTEGER DEFAULT 0
           );
         ''');
 
         // Tabla de mensajes
         await db.execute('''
           CREATE TABLE messages (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            conversation_id INTEGER,
+            id INTEGER PRIMARY KEY,
+            conversation_id INTEGER NOT NULL,
             role TEXT,
             content TEXT,
             fecha_hora TEXT
@@ -85,7 +86,8 @@ class LocalDatabase {
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER,
             alias TEXT,
-            safe_contact TEXT
+            safe_contact TEXT,
+            correo TEXT
           );
         ''');
 
@@ -100,6 +102,26 @@ class LocalDatabase {
             url TEXT
           );
         ''');
+
+        await db.execute('''
+      CREATE TABLE habits (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name_habit TEXT NOT NULL,
+        description TEXT,
+        icon_habit TEXT
+      );
+    ''');
+
+        await db.execute('''
+      CREATE TABLE habit_logs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        habit_id INTEGER NOT NULL,
+        student_id INTEGER NOT NULL,
+        fecha TEXT NOT NULL,
+        completed INTEGER DEFAULT 0,
+        UNIQUE(habit_id, student_id, fecha)
+      );
+    ''');
       },
     );
   }

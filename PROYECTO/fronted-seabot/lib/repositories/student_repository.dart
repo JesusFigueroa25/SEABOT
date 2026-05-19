@@ -16,13 +16,14 @@ class StudentRepository {
       final perfil = await apiService.getStudentById(identificador);
 
       // 2️⃣ Guardar o reemplazar en SQLite
-      print("💾 Guardando tests locales: ${perfil.id} - ${perfil.alias}");
+      print("💾 Guardando tests locales: ${perfil.id} - ${perfil.alias} - ${perfil.correo}");
 
       await db.insert('students', {
         'id': perfil.id,
         'user_id': perfil.userId,
         'alias': perfil.alias,
-        'safe_contact': perfil.safeContact
+        'safe_contact': perfil.safeContact,
+        'correo': perfil.correo,
       }, conflictAlgorithm: ConflictAlgorithm.replace);
 
       return perfil;
@@ -43,6 +44,7 @@ class StudentRepository {
           "user_id": e["user_id"],
           "alias": e["alias"],
           "safe_contact": e["safe_contact"],
+          "correo": e["correo"], 
         });
       } else {
         return null; // 👈 no hay datos en local

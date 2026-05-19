@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:ui';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:seabot/core/app_colors.dart';
@@ -7,6 +10,8 @@ import 'package:seabot/screens/admin_metrics_screen.dart';
 import 'package:seabot/screens/admin_resources_screen.dart';
 import 'package:seabot/screens/bienvenida_screen.dart';
 import 'package:seabot/services/user_service.dart';
+import 'package:seabot/screens/support_reports_admin_screen.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({super.key});
@@ -16,9 +21,10 @@ class AdminDashboardScreen extends StatefulWidget {
 }
 
 class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
-  final AuthService _authService = AuthService();
+  //final AuthService _authService = AuthService();
+  bool isConnected = true;
+  //late StreamSubscription<List<ConnectivityResult>> _subscription;
 
-  // 🔹 Tarjeta de dashboard con animación y estilo uniforme
   Widget _buildDashboardCard({
     required IconData icon,
     required String title,
@@ -71,13 +77,66 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     );
   }
 
+  Future<bool> _hasInternet() async {
+    final results = await Connectivity().checkConnectivity();
+
+    if (results.contains(ConnectivityResult.none)) return false;
+
+    try {
+      final result = await InternetAddress.lookup(
+        'seabot-backend-993787742289.us-central1.run.app',
+      ).timeout(const Duration(seconds: 3));
+
+      return result.isNotEmpty && result.first.rawAddress.isNotEmpty;
+    } catch (_) {
+      return false;
+    }
+  }
+
   // 🔹 Cerrar sesión con feedback visual
   void _cerrarSesion() async {
-    await _authService.logout();
+    final hasInternet = await _hasInternet();
+
+    if (!mounted) return;
+
+    if (!hasInternet) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            "No tienes conexión a internet. No se pudo cerrar sesión.",
+            style: GoogleFonts.manrope(
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+        ),
+      );
+      return;
+    }
+
+    final authService = AuthService();
+    await authService.logout();
+
     if (!mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Sesión cerrada correctamente.")),
+      SnackBar(
+        content: Text(
+          "Sesión cerrada correctamente.",
+          style: GoogleFonts.manrope(
+            color: Colors.white,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        backgroundColor: AppColors.secundary,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      ),
     );
 
     Navigator.pushAndRemoveUntil(
@@ -228,6 +287,20 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                         context,
                         MaterialPageRoute(
                           builder: (_) => const AdminReportsScreen(),
+                        ),
+                      );
+                    },
+                  ),
+
+                  _buildDashboardCard(
+                    icon: Icons.support_agent_rounded,
+                    title: "Reportes de Soporte",
+                    color: AppColors.secondaryDark,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const SupportReportsAdminScreen(),
                         ),
                       );
                     },

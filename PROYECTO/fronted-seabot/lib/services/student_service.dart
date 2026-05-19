@@ -3,8 +3,8 @@ import 'package:http/http.dart' as http;
 import '../models/student.dart';
 
 class StudentService {
-  final String baseUrl = "https://seabot-backend-260367329176.southamerica-west1.run.app/students";
-  //final String baseUrl = "http://10.0.2.2:8080/students";
+  final String baseUrl =
+      "https://seabot-backend-993787742289.us-central1.run.app/students";
 
   Future<Student> createStudent(Map<String, dynamic> body) async {
     final response = await http.post(
@@ -12,14 +12,18 @@ class StudentService {
       headers: {"Content-Type": "application/json"},
       body: json.encode(body),
     );
-    if (response.statusCode == 200 ||
-        response.statusCode == 201 ||
-        response.statusCode == 204) {
+    if (response.statusCode == 200 || response.statusCode == 201) {
       final data = json.decode(response.body);
-      return Student.fromJsonCreateUserStudent(data);
-    } else {
-      throw Exception("Error al crear");
+      return Student.fromJson(data);
     }
+
+    if (response.statusCode == 409) {
+      final data = json.decode(response.body);
+      final detail = data["detail"] ?? "El correo ya está registrado";
+      throw Exception(detail);
+    }
+
+    throw Exception("Error al crear estudiante");
   }
 
   Future<List<Student>> getAllStudents() async {
@@ -61,5 +65,21 @@ class StudentService {
     if (response.statusCode != 200 && response.statusCode != 204) {
       throw Exception("Error al eliminar estudiante");
     }
+  }
+
+  Future<bool> existsCorreo(String correo) async {
+    final cleanCorreo = correo.trim().toLowerCase();
+    final encodedCorreo = Uri.encodeComponent(cleanCorreo);
+
+    final response = await http.get(
+      Uri.parse("$baseUrl/exists/correo/$encodedCorreo"),
+    );
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      return data["exists"] == true;
+    }
+
+    throw Exception("No se pudo validar el correo");
   }
 }

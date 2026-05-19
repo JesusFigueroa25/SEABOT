@@ -3,8 +3,8 @@ import 'package:http/http.dart' as http;
 import '../models/help_resource.dart';
 
 class HelpResourceService {
-  final String baseUrl = "https://seabot-backend-260367329176.southamerica-west1.run.app/helpresources";
-  //final String baseUrl = "http://10.0.2.2:8080/helpresources";
+  final String baseUrl = "https://seabot-backend-993787742289.us-central1.run.app/helpresources";
+
 
   Future<void> createResource(Map<String, dynamic> body) async {
     final response = await http.post(

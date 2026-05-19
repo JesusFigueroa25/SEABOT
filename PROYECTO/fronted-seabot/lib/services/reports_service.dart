@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:seabot/models/reports_models.dart';
 
 class ReportsService {
-  final String baseUrl = "https://seabot-backend-260367329176.southamerica-west1.run.app/admin/reports";
+  final String baseUrl = "https://seabot-backend-993787742289.us-central1.run.app/admin/reports";
 
   // CA1
   Future<List<WeeklyActivity>> getWeeklyActivity() async {

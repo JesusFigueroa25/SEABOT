@@ -58,7 +58,7 @@ class _AdminMetricsScreenState extends State<AdminMetricsScreen> {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
               } else if (snapshot.hasError) {
-                return Center(child: Text("Error: ${snapshot.error}"));
+                return _buildConnectionError();
               } else if (!snapshot.hasData) {
                 return const Center(
                   child: Text(
@@ -78,9 +78,21 @@ class _AdminMetricsScreenState extends State<AdminMetricsScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
-                        _buildStatCard("Usuarios", data.usuarios, AppColors.primary),
-                        _buildStatCard("Chats activos", data.conversaciones, AppColors.secundary),
-                        _buildStatCard("Recursos", data.recursos, Colors.deepPurple),
+                        _buildStatCard(
+                          "Usuarios",
+                          data.usuarios,
+                          AppColors.primary,
+                        ),
+                        _buildStatCard(
+                          "Chats activos",
+                          data.conversaciones,
+                          AppColors.secundary,
+                        ),
+                        _buildStatCard(
+                          "Recursos",
+                          data.recursos,
+                          Colors.deepPurple,
+                        ),
                       ],
                     ),
                     const SizedBox(height: 30),
@@ -98,7 +110,8 @@ class _AdminMetricsScreenState extends State<AdminMetricsScreen> {
                           children: [
                             Text(
                               "Distribución General",
-                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              style: Theme.of(context).textTheme.titleMedium
+                                  ?.copyWith(
                                     fontWeight: FontWeight.bold,
                                     color: Colors.black87,
                                   ),
@@ -131,7 +144,8 @@ class _AdminMetricsScreenState extends State<AdminMetricsScreen> {
                           children: [
                             Text(
                               "Porcentaje de Uso",
-                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              style: Theme.of(context).textTheme.titleMedium
+                                  ?.copyWith(
                                     fontWeight: FontWeight.bold,
                                     color: Colors.black87,
                                   ),
@@ -224,6 +238,34 @@ class _AdminMetricsScreenState extends State<AdminMetricsScreen> {
       ),
     );
   }
+
+  Widget _buildConnectionError() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.wifi_off_rounded,
+              size: 48,
+              color: Colors.redAccent,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              "Sin conexión a internet",
+              style: GoogleFonts.manrope(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: Colors.redAccent,
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 // 🔹 Gráfico de barras con tipografía Manrope
@@ -249,19 +291,31 @@ class _BarChart extends StatelessWidget {
           BarChartGroupData(
             x: 0,
             barRods: [
-              BarChartRodData(toY: totalUsuarios.toDouble(), color: AppColors.primary, width: 18),
+              BarChartRodData(
+                toY: totalUsuarios.toDouble(),
+                color: AppColors.primary,
+                width: 18,
+              ),
             ],
           ),
           BarChartGroupData(
             x: 1,
             barRods: [
-              BarChartRodData(toY: conversacionesActivas.toDouble(), color: AppColors.secundary, width: 18),
+              BarChartRodData(
+                toY: conversacionesActivas.toDouble(),
+                color: AppColors.secundary,
+                width: 18,
+              ),
             ],
           ),
           BarChartGroupData(
             x: 2,
             barRods: [
-              BarChartRodData(toY: recursosUsados.toDouble(), color: Colors.deepPurple, width: 18),
+              BarChartRodData(
+                toY: recursosUsados.toDouble(),
+                color: Colors.deepPurple,
+                width: 18,
+              ),
             ],
           ),
         ],

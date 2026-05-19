@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'dart:async';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:seabot/core/app_data.dart';
 import 'package:seabot/models/student.dart';
@@ -6,8 +8,8 @@ import '../models/user.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class UserService {
-  final String baseUrl =  "https://seabot-backend-260367329176.southamerica-west1.run.app/users";
-  //final String baseUrl = "http://10.0.2.2:8080/users";
+  final String baseUrl =
+      "https://seabot-backend-993787742289.us-central1.run.app/users";
 
   Future<User> createUser(Map<String, dynamic> body) async {
     final response = await http.post(
@@ -15,14 +17,16 @@ class UserService {
       headers: {"Content-Type": "application/json"},
       body: json.encode(body),
     );
-    if (response.statusCode == 200 ||
-        response.statusCode == 201 ||
-        response.statusCode == 204) {
+    if (response.statusCode == 200 || response.statusCode == 201) {
       final data = json.decode(response.body);
       return User.fromJson(data);
-    } else {
-      throw Exception("Error al crear registro emocional");
     }
+
+    if (response.statusCode == 409) {
+      throw Exception("El nombre de usuario ya existe");
+    }
+
+    throw Exception("Error al crear usuario");
   }
 
   Future<List<User>> getAllUsers() async {
@@ -114,21 +118,144 @@ class UserService {
   }
 
   Future<Metricas> getMetricas() async {
-    final response = await http.get(Uri.parse("$baseUrl/metricas/"));
+    try {
+      final response = await http
+          .get(Uri.parse("$baseUrl/metricas/"))
+          .timeout(const Duration(seconds: 8));
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return Metricas.fromJson(data);
+      } else {
+        throw Exception("No se pudieron cargar las métricas");
+      }
+    } on SocketException {
+      throw Exception("Sin conexión a internet");
+    } on TimeoutException {
+      throw Exception("Tiempo de espera agotado");
+    } catch (_) {
+      throw Exception("No se pudieron cargar las métricas");
+    }
+  }
+
+  //FORGOT & RESET PASSWORD
+  Future<String> forgotPassword(String correo) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/forgot-password'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'correo': correo}),
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return data['message'];
+    } else if (response.statusCode == 404) {
+      throw Exception("Correo no registrado");
+    } else {
+      throw Exception("No se pudo enviar el código");
+    }
+  }
+
+  Future<String> resetPassword(String codigo, String newPassword) async {
+    final response = await http.post(
+      Uri.parse("$baseUrl/reset-password"),
+      headers: {"Content-Type": "application/json"},
+      body: json.encode({"codigo": codigo, "new_password": newPassword}),
+    );
+
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
-      return Metricas.fromJson(data);
+      return data["message"] ?? "Contraseña actualizada correctamente";
     } else {
-      throw Exception("Error al obtener métricas");
+      throw Exception("Error al restablecer contraseña: ${response.body}");
     }
   }
 }
 
 class AuthService {
-  final String baseUrl =    "https://seabot-backend-260367329176.southamerica-west1.run.app/users";
-  //final String baseUrl = "http://10.0.2.2:8080/users";
+  final String baseUrl =
+      "https://seabot-backend-993787742289.us-central1.run.app/users";
+
   final _storage = const FlutterSecureStorage();
 
+  Future<String?> login(String username, String password) async {
+    final response = await http.post(
+      Uri.parse("$baseUrl/login/"),
+      headers: {"Content-Type": "application/json"},
+      body: json.encode({
+        "nameuser": username.trim(),
+        "password": password.trim(),
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      final token = data["access_token"];
+
+      // Obtiene la expiración real del JWT.
+      // Si no puede leerla, usa 15 minutos como respaldo.
+      final expiresAt = DateTime.now().add(const Duration(minutes: 15));
+      // Guardar token y fecha de expiración
+      await _storage.write(key: "auth_token", value: token);
+      await _storage.write(
+        key: "auth_token_expires_at",
+        value: expiresAt.toIso8601String(),
+      );
+
+      // Guardar user_id
+      await _storage.write(key: "user_id", value: data["id"].toString());
+
+      // Manejar student_id
+      final studentId = data["student_id"];
+      if (studentId != null) {
+        await _storage.write(key: "student_id", value: studentId.toString());
+        AppData.studentID = studentId;
+      } else {
+        await _storage.delete(key: "student_id");
+        AppData.studentID = 0;
+      }
+
+      // Guardar role
+      final role = data["role"];
+      if (role != null) {
+        await _storage.write(key: "role", value: role);
+        AppData.role = role;
+      } else {
+        await _storage.delete(key: "role");
+        AppData.role = "";
+      }
+
+      // Guardar en memoria
+      AppData.userID = data["id"];
+      AppData.token = token;
+
+      return token;
+    } else {
+      final data = json.decode(response.body);
+      final detail = data["detail"] ?? "Error al iniciar sesión";
+
+      throw Exception(detail);
+    }
+  }
+
+  Future<void> logout() async {
+    await _storage.delete(key: "auth_token");
+    await _storage.delete(key: "auth_token_expires_at");
+    await _storage.delete(key: "student_id");
+    await _storage.delete(key: "user_id");
+    await _storage.delete(key: "role");
+
+    AppData.token = "";
+    AppData.studentID = 0;
+    AppData.userID = 0;
+    AppData.role = "";
+  }
+
+  Future<String?> getToken() async {
+    return await _storage.read(key: "auth_token");
+  }
+
+  /* 
   Future<String?> loginUser(String username, String password) async {
     final response = await http.post(
       Uri.parse("$baseUrl/login/user/"),
@@ -174,55 +301,5 @@ class AuthService {
       return null;
     }
   }
-
-  Future<String?> login(String username, String password) async {
-    final response = await http.post(
-      Uri.parse("$baseUrl/login/"),
-      headers: {"Content-Type": "application/json"},
-      body: json.encode({"nameuser": username, "password": password}),
-    );
-
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body);
-      final token = data["access_token"];
-
-      // ✅ Guardar token e IDs
-      await _storage.write(key: "auth_token", value: token);
-      await _storage.write(key: "user_id", value: data["id"].toString());
-
-      // 🔹 Manejar null para student_id
-      final studentId = data["student_id"];
-      if (studentId != null) {
-        await _storage.write(key: "student_id", value: studentId.toString());
-        AppData.studentID = studentId;
-      } else {
-        await _storage.delete(key: "student_id"); // limpia si no es estudiante
-        AppData.studentID = 0;
-      }
-
-      // 🔹 Guardar role
-      final role = data["role"];
-      if (role != null) {
-        await _storage.write(key: "role", value: role);
-        AppData.role = role;
-      }
-
-      // 🔹 Guardar en memoria
-      AppData.userID = data["id"];
-      AppData.token = token;
-
-      return token;
-    } else {
-      print("Error al iniciar sesión: ${response.body}");
-      return null;
-    }
-  }
-
-  Future<void> logout() async {
-    await _storage.delete(key: "auth_token"); // ✅ eliminar
-  }
-
-  Future<String?> getToken() async {
-    return await _storage.read(key: "auth_token");
-  }
+*/
 }

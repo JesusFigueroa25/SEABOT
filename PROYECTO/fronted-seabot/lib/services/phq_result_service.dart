@@ -3,8 +3,8 @@ import 'package:http/http.dart' as http;
 import '../models/phq_result.dart';
 
 class PhqResultService {
-  final String baseUrl ="https://seabot-backend-260367329176.southamerica-west1.run.app/phqresults";
-  //final String baseUrl = "http://10.0.2.2:8080/phqresults";
+  final String baseUrl = "https://seabot-backend-993787742289.us-central1.run.app/phqresults";
+
 
   Future<void> createResult(Map<String, dynamic> body) async {
     final response = await http.post(
@@ -75,17 +75,17 @@ class PhqResultService {
     }
   }
 
-  Future<bool> hasTakenToday(int studentId) async {
-    final response = await http.get(
-      Uri.parse('$baseUrl/check/$studentId'),
-      headers: {'Content-Type': 'application/json'},
-    );
+  Future<bool> hasTakenRecently(int studentId) async {
+  final response = await http.get(
+    Uri.parse('$baseUrl/check/$studentId'),
+    headers: {'Content-Type': 'application/json'},
+  );
 
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body);
-      return data['taken_today'] == true;
-    } else {
-      throw Exception('Error al verificar el test de hoy');
-    }
+  if (response.statusCode == 200) {
+    final data = json.decode(response.body);
+    return data['taken_recently'] == true;
+  } else {
+    throw Exception('Error al verificar restricción del test');
   }
+}
 }

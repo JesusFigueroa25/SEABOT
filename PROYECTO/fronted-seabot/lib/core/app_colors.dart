@@ -10,6 +10,8 @@ class AppColors {
   static const Color backgroundLight = Color(0xFFF9FAFB); // Fondo suave
   static const Color cardLight = Color(0xFFFFFFFF); // Tarjetas
   static const Color textLight = Color(0xFF34495E); // Texto legible
+  static const Color subtitleLight = Color(0xFF5D6D7E); // Texto secundario
+
 
   static const Color primaryDarkText = Color(
     0xFF5B8AA4,
@@ -25,6 +27,8 @@ class AppColors {
   static const Color backgroundDark = Color(0xFF222E3A); // Fondo oscuro suave
   static const Color cardDark = Color(0xFF324A5F); // Tarjetas oscuras
   static const Color textDark = Color(0xFFEAF2F8); // Texto claro azulado
+  static const Color subtitleDark = Color(0xFFB0BEC5); // Texto secundario gris-azulado
+
 
   // 🧱 Colores neutros
   static const Color white = Colors.white;

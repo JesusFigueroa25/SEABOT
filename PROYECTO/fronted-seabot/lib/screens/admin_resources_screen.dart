@@ -22,6 +22,58 @@ class _AdminResourcesScreenState extends State<AdminResourcesScreen> {
     resultados = serviceController.getAllResources();
   }
 
+  Future<void> _confirmDeleteResource(HelpResource resource) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text(
+          "Eliminar recurso",
+          style: GoogleFonts.manrope(fontWeight: FontWeight.bold),
+        ),
+        content: Text(
+          "¿Estás seguro de eliminar el recurso ${resource.nameResource}?",
+          style: GoogleFonts.manrope(),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(
+              "Cancelar",
+              style: GoogleFonts.manrope(color: AppColors.primary),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(
+              "Eliminar",
+              style: GoogleFonts.manrope(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    await serviceController.deleteResource(resource.id);
+
+    final nuevosDatos = await serviceController.getAllResources();
+
+    if (!mounted) return;
+
+    setState(() {
+      resultados = Future.value(nuevosDatos);
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("🗑️ Recurso eliminado correctamente"),
+        backgroundColor: Colors.redAccent,
+      ),
+    );
+  }
+
   // 🟣 Diálogo reutilizable para agregar o editar
   void _showResourceDialog({HelpResource? resource}) {
     final TextEditingController _nameCtrl = TextEditingController(
@@ -46,7 +98,9 @@ class _AdminResourcesScreenState extends State<AdminResourcesScreen> {
           ),
         ),
         child: AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           title: Text(
             resource == null ? "Agregar Recurso de Apoyo" : "Editar Recurso",
             style: GoogleFonts.manrope(fontWeight: FontWeight.bold),
@@ -74,7 +128,9 @@ class _AdminResourcesScreenState extends State<AdminResourcesScreen> {
                 const SizedBox(height: 10),
                 DropdownButtonFormField<String>(
                   value: _tipo,
-                  decoration: const InputDecoration(labelText: "Tipo de recurso"),
+                  decoration: const InputDecoration(
+                    labelText: "Tipo de recurso",
+                  ),
                   items: ["Artículo", "Video", "Guía"]
                       .map((e) => DropdownMenuItem(value: e, child: Text(e)))
                       .toList(),
@@ -170,9 +226,7 @@ class _AdminResourcesScreenState extends State<AdminResourcesScreen> {
         ),
         subtitle: Text(
           r.resourceType ?? "Sin tipo",
-          style: GoogleFonts.manrope(
-            color: Colors.grey[700],
-          ),
+          style: GoogleFonts.manrope(color: Colors.grey[700]),
         ),
         trailing: PopupMenuButton<String>(
           color: Colors.white,
@@ -181,42 +235,46 @@ class _AdminResourcesScreenState extends State<AdminResourcesScreen> {
             if (v == "Editar") {
               _showResourceDialog(resource: r);
             } else if (v == "Eliminar") {
-              await serviceController.deleteResource(r.id);
-              final nuevosDatos = await serviceController.getAllResources();
-
-              if (mounted) {
-                setState(() {
-                  resultados = Future.value(nuevosDatos);
-                });
-              }
-
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text("🗑️ Recurso eliminado correctamente"),
-                  backgroundColor: Colors.redAccent,
-                ),
-              );
+              _confirmDeleteResource(r);
             } else if (v == "Estado") {
-              await serviceController.modifyEnable(r.id, {"enable": !r.enable});
-              final nuevosDatos = await serviceController.getAllResources();
-
-              if (mounted) {
-                setState(() {
-                  resultados = Future.value(nuevosDatos);
+              try {
+                await serviceController.modifyEnable(r.id, {
+                  "enable": !r.enable,
                 });
-              }
+                final nuevosDatos = await serviceController.getAllResources();
 
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    !r.enable
-                        ? "✅ Recurso activado correctamente"
-                        : "🚫 Recurso bloqueado correctamente",
+                if (mounted) {
+                  setState(() {
+                    resultados = Future.value(nuevosDatos);
+                  });
+                }
+
+                if (!mounted) return;
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      !r.enable
+                          ? "✅ Recurso activado correctamente"
+                          : "🚫 Recurso bloqueado correctamente",
+                    ),
+                    backgroundColor: !r.enable
+                        ? Colors.green
+                        : Colors.orangeAccent,
                   ),
-                  backgroundColor:
-                      !r.enable ? Colors.green : Colors.orangeAccent,
-                ),
-              );
+                );
+              } catch (e) {
+                if (!mounted) return;
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      "No se pudo actualizar el estado del recurso",
+                    ),
+                    backgroundColor: Colors.redAccent,
+                  ),
+                );
+              }
             }
           },
           itemBuilder: (context) => const [
@@ -259,14 +317,43 @@ class _AdminResourcesScreenState extends State<AdminResourcesScreen> {
                     r.enable ? "Activo" : "Bloqueado",
                     style: GoogleFonts.manrope(color: Colors.white),
                   ),
-                  backgroundColor:
-                      r.enable ? Colors.greenAccent[700] : Colors.redAccent,
+                  backgroundColor: r.enable
+                      ? Colors.greenAccent[700]
+                      : Colors.redAccent,
                 ),
                 const SizedBox(width: 10),
               ],
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildConnectionError() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.wifi_off_rounded,
+              size: 48,
+              color: Colors.redAccent,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              "Sin conexión a internet",
+              style: GoogleFonts.manrope(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: Colors.redAccent,
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
       ),
     );
   }
@@ -303,11 +390,18 @@ class _AdminResourcesScreenState extends State<AdminResourcesScreen> {
         body: FutureBuilder<List<HelpResource>>(
           future: resultados,
           builder: (context, snapshot) {
-            if (!snapshot.hasData) {
+            // 🔹 1. LOADING
+            if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
             }
-            final data = snapshot.data!;
-            if (data.isEmpty) {
+
+            // 🔹 2. ERROR (SIN INTERNET)
+            if (snapshot.hasError) {
+              return _buildConnectionError();
+            }
+
+            // 🔹 3. SIN DATOS
+            if (!snapshot.hasData || snapshot.data!.isEmpty) {
               return Center(
                 child: Text(
                   "No hay recursos aún.",
@@ -318,6 +412,9 @@ class _AdminResourcesScreenState extends State<AdminResourcesScreen> {
                 ),
               );
             }
+
+            // 🔹 4. DATA OK
+            final data = snapshot.data!;
             return ListView(children: data.map(_buildResourceCard).toList());
           },
         ),

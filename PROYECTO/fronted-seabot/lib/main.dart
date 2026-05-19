@@ -8,16 +8,15 @@ import 'package:seabot/core/app_colors.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  //await NotificationService.init();
+  await NotificationService.init();
+  await NotificationService.restoreScheduledNotificationsIfEnabled();
+
   runApp(
     ChangeNotifierProvider(
       create: (_) => ThemeNotifier(),
       child: const MainApp(),
     ),
   );
-  Future.delayed(Duration.zero, () async {
-    await NotificationService.init();
-  });
 }
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -28,16 +27,12 @@ class MainApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final themeNotifier = Provider.of<ThemeNotifier>(context);
-
     final baseTextStyle = GoogleFonts.manropeTextTheme();
 
     return MaterialApp(
-      navigatorKey: navigatorKey, // ✅ agrega esto
-
+      navigatorKey: navigatorKey,
       debugShowCheckedModeBanner: false,
       title: 'SeaBot',
-
-      // 🌞 Tema claro
       theme: ThemeData(
         brightness: Brightness.light,
         scaffoldBackgroundColor: AppColors.backgroundLight,
@@ -51,7 +46,6 @@ class MainApp extends StatelessWidget {
             fontSize: 20,
           ),
         ),
-
         dialogTheme: DialogThemeData(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -79,8 +73,6 @@ class MainApp extends StatelessWidget {
         ),
         cardColor: AppColors.cardLight,
       ),
-
-      // 🌙 Tema oscuro
       darkTheme: ThemeData(
         brightness: Brightness.dark,
         scaffoldBackgroundColor: AppColors.backgroundDark,
@@ -94,14 +86,11 @@ class MainApp extends StatelessWidget {
             fontSize: 20,
           ),
         ),
-
-        // 🎨 Bloque de estilos globales (modo oscuro)
         dialogTheme: DialogThemeData(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
         ),
-
         textButtonTheme: TextButtonThemeData(
           style: TextButton.styleFrom(
             foregroundColor: AppColors.primaryDark,
@@ -118,17 +107,13 @@ class MainApp extends StatelessWidget {
             textStyle: GoogleFonts.manrope(fontWeight: FontWeight.w600),
           ),
         ),
-
         colorScheme: const ColorScheme.dark(
           primary: AppColors.primaryDark,
           secondary: AppColors.secondaryDark,
         ),
         cardColor: AppColors.cardDark,
       ),
-
-      // 🔄 Tema dinámico
       themeMode: themeNotifier.isDarkMode ? ThemeMode.dark : ThemeMode.light,
-
       home: const InicioAppScreen(),
     );
   }
