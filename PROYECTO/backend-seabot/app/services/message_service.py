@@ -189,8 +189,6 @@ def create_message(db: Session, obj: MessageInput, background_tasks: BackgroundT
         .order_by(Message.id.desc())
         .first()
     )
-    print(f"[TIME] consultas DB previas: {time.perf_counter() - t0:.3f}s")
-    
     if last_sentiment_msg:
         contexto_sentimiento = build_sentiment_context(
             last_sentiment_msg.category,
@@ -233,14 +231,7 @@ def create_message(db: Session, obj: MessageInput, background_tasks: BackgroundT
         max_output_tokens=130,
         metadata={"conversation_id": str(obj.openai_id)}
     )
-    print(f"[TIME] openai main: {time.perf_counter() - t2:.3f}s")
-
     output_text = response.output_text
-
-    print(f"[TIME] openai main: {time.perf_counter() - t2:.3f}s")
-
-    print(json.dumps(response.model_dump(), indent=2, ensure_ascii=False))
-    print("OUTPUT TEXT:", response.output_text)
 
     output_text = response.output_text
     now = datetime.utcnow()
@@ -272,8 +263,6 @@ def create_message(db: Session, obj: MessageInput, background_tasks: BackgroundT
     db.add(user_msg)
     db.add(bot_msg_db)
     db.commit()
-    print(f"[TIME] guardado DB: {time.perf_counter() - t3:.3f}s")
-    print(f"[TIME] total endpoint: {time.perf_counter() - t0:.3f}s")
     background_tasks.add_task(
         analyze_and_update_sentiment,
         user_msg.id,
@@ -319,7 +308,6 @@ def analyze_and_update_sentiment(user_message_id: int, text: str):
 
     except Exception as e:
         db.rollback()
-        print(f"[WARN] Error en analyze_and_update_sentiment: {e}")
     finally:
         db.close()
 
@@ -391,7 +379,7 @@ def save_openai_conversation_items(conversation_openai_id: str, user_text: str, 
             ]
         )
     except Exception as e:
-        print(f"[WARN] No se pudo guardar items en OpenAI Conversations: {e}")
+        pass
         
 def generate_and_save_summary(conversation_id: int):
     db = SessionLocal()
@@ -443,7 +431,6 @@ def generate_and_save_summary(conversation_id: int):
 
     except Exception as e:
         db.rollback()
-        print(f"[WARN] Error generando resumen: {e}")
     finally:
         db.close()
         
@@ -564,12 +551,6 @@ def create_message_stream(db: Session, obj: MessageInput, background_tasks: Back
                 raise Exception("Respuesta vacía desde OpenAI")
             
             # 🔍 DEBUG AQUÍ
-            print("=== DEBUG STREAM SAVE ===")
-            print("USER:", obj.content)
-            print("ASSISTANT OUTPUT:", output_text)
-            print("RESPONSE ID:", response_id)
-            print("=========================")
-
             db_stream = SessionLocal()
             try:
                 user_msg = Message(
@@ -622,12 +603,10 @@ def create_message_stream(db: Session, obj: MessageInput, background_tasks: Back
 
             except Exception as e:
                 db_stream.rollback()
-                print(f"[ERROR DB STREAM SAVE] {e}")
             finally:
                 db_stream.close()
 
         except Exception as e:
-            print(f"[ERROR STREAM] {e}")
             yield "\n[ERROR_STREAM] No se pudo generar la respuesta."
 
     return stream_generator()

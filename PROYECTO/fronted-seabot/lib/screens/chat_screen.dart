@@ -36,6 +36,8 @@ class _ChatScreenState extends State<ChatScreen> {
   bool _sendingMessage = false;
 
   static const int maxChars = 250;
+  static const double _scrollToBottomThreshold = 260;
+  static const Duration _streamUiUpdateInterval = Duration(milliseconds: 80);
   List<Message> _localMessages = [];
 
   //  bool _showingNoInternetSnack = false;
@@ -48,12 +50,11 @@ class _ChatScreenState extends State<ChatScreen> {
 
     _scrollController.addListener(() {
       if (!_scrollController.hasClients) return;
-      final distanceFromBottom =
-          _scrollController.position.maxScrollExtent - _scrollController.offset;
-      const threshold = 260;
+      final shouldShow =
+          _distanceFromBottom() > _scrollToBottomThreshold;
 
-      if (mounted) {
-        setState(() => _showScrollToBottom = distanceFromBottom > threshold);
+      if (mounted && shouldShow != _showScrollToBottom) {
+        setState(() => _showScrollToBottom = shouldShow);
       }
     });
   }
@@ -238,16 +239,54 @@ class _ChatScreenState extends State<ChatScreen> {
 
     _scrollToBottom(animated: true);
 
+    int? tempBotId;
+    DateTime? botMessageDate;
+    String streamedText = "";
+    DateTime lastStreamUiUpdate = DateTime.fromMillisecondsSinceEpoch(0);
+
+    void flushStreamedText({bool force = false}) {
+      if (!mounted) return;
+
+      final now = DateTime.now();
+      if (!force &&
+          now.difference(lastStreamUiUpdate) < _streamUiUpdateInterval) {
+        return;
+      }
+
+      lastStreamUiUpdate = now;
+      final shouldAutoScroll = _isNearBottom();
+
+      setState(() {
+        _loadingInitialMessages = false;
+
+        if (tempBotId != null && botMessageDate != null) {
+          _replaceLocalMessageContent(
+            id: tempBotId!,
+            role: "assistant",
+            content: streamedText,
+            fechaHora: botMessageDate!,
+          );
+        }
+      });
+
+      if (shouldAutoScroll) {
+        _scrollToBottom(animated: false, settle: false);
+      }
+    }
+
     try {
-      final tempBotId = DateTime.now().millisecondsSinceEpoch * -1;
+      tempBotId = DateTime.now().millisecondsSinceEpoch * -1;
+      botMessageDate = DateTime.now().toUtc();
 
       final botLocalMessage = Message(
-        id: tempBotId,
+        id: tempBotId!,
         role: "assistant",
         content: "",
-        fechaHora: DateTime.now().toUtc(),
+        fechaHora: botMessageDate!,
         conversationID: widget.conversationId,
       );
+
+      final shouldAutoScrollAfterBotBubble = _isNearBottom();
 
       setState(() {
         _botTyping = false;
@@ -255,9 +294,9 @@ class _ChatScreenState extends State<ChatScreen> {
         _loadingInitialMessages = false;
       });
 
-      _scrollToBottom();
-
-      String streamedText = "";
+      if (shouldAutoScrollAfterBotBubble) {
+        _scrollToBottom(animated: false, settle: false);
+      }
 
       await for (final chunk in serviceController.createMessageStream(
         inputResponse,
@@ -270,23 +309,10 @@ class _ChatScreenState extends State<ChatScreen> {
 
         streamedText += chunk;
 
-        setState(() {
-          final index = _localMessages.indexWhere((m) => m.id == tempBotId);
-          _loadingInitialMessages = false;
-
-          if (index != -1) {
-            _localMessages[index] = Message(
-              id: tempBotId,
-              role: "assistant",
-              content: streamedText,
-              fechaHora: botLocalMessage.fechaHora,
-              conversationID: widget.conversationId,
-            );
-          }
-        });
-
-        _scrollToBottom();
+        flushStreamedText();
       }
+
+      flushStreamedText(force: true);
 
       await Future.delayed(const Duration(milliseconds: 300));
 
@@ -311,15 +337,15 @@ class _ChatScreenState extends State<ChatScreen> {
         _scrollToBottom(animated: true);
       }
     } catch (e) {
-      print("ERROR STREAMING FRONTEND: $e");
-
       await repository.markConversationPending(widget.conversationId, false);
 
       if (!mounted) return;
 
       setState(() {
         _botTyping = false;
-        _localMessages.clear();
+        if (tempBotId != null) {
+          _removeEmptyLocalMessage(tempBotId!);
+        }
         _loadingInitialMessages = false;
       });
 
@@ -363,7 +389,48 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
-  Future<void> _scrollToBottom({bool animated = true}) async {
+  double _distanceFromBottom() {
+    if (!_scrollController.hasClients) return 0;
+    return _scrollController.position.maxScrollExtent -
+        _scrollController.offset;
+  }
+
+  bool _isNearBottom({double threshold = 140}) {
+    if (!_scrollController.hasClients) return true;
+    return _distanceFromBottom() <= threshold;
+  }
+
+  void _replaceLocalMessageContent({
+    required int id,
+    required String role,
+    required String content,
+    required DateTime fechaHora,
+  }) {
+    final index = _localMessages.indexWhere((m) => m.id == id);
+    if (index == -1) return;
+
+    _localMessages[index] = Message(
+      id: id,
+      role: role,
+      content: content,
+      fechaHora: fechaHora,
+      conversationID: widget.conversationId,
+    );
+  }
+
+  void _removeEmptyLocalMessage(int id) {
+    final index = _localMessages.indexWhere((m) => m.id == id);
+    if (index == -1) return;
+
+    if (_localMessages[index].content.trim().isEmpty) {
+      _localMessages.removeAt(index);
+    }
+  }
+
+  Future<void> _scrollToBottom({
+    bool animated = true,
+    bool settle = true,
+  }) async {
     await Future.delayed(const Duration(milliseconds: 80));
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
@@ -382,6 +449,8 @@ class _ChatScreenState extends State<ChatScreen> {
       } else {
         _scrollController.jumpTo(target);
       }
+
+      if (!settle) return;
 
       await Future.delayed(const Duration(milliseconds: 120));
 
@@ -679,6 +748,13 @@ class _ChatScreenState extends State<ChatScreen> {
                             final textColor = isUser
                                 ? AppColors.black
                                 : (isDark ? Colors.white : AppColors.black);
+                            final screenWidth = MediaQuery.sizeOf(
+                              context,
+                            ).width;
+                            final bubbleMaxWidth =
+                                ((screenWidth - 28) * 0.82)
+                                    .clamp(220.0, 560.0)
+                                    .toDouble();
 
                             return GestureDetector(
                               onLongPress: () async =>
@@ -688,8 +764,8 @@ class _ChatScreenState extends State<ChatScreen> {
                                     ? Alignment.centerRight
                                     : Alignment.centerLeft,
                                 child: ConstrainedBox(
-                                  constraints: const BoxConstraints(
-                                    maxWidth: 290,
+                                  constraints: BoxConstraints(
+                                    maxWidth: bubbleMaxWidth,
                                   ),
                                   child: Container(
                                     margin: const EdgeInsets.symmetric(

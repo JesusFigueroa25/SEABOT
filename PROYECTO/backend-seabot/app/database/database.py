@@ -6,7 +6,7 @@ DATABASE_URL = "postgresql://postgres:seaBot_251003@34.135.157.11/seabot-db"
 
 
 # Crear motor de conexión
-engine = create_engine(DATABASE_URL, echo=True)
+engine = create_engine(DATABASE_URL, echo=False)
 
 # Crear sesión (se usará para consultas)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

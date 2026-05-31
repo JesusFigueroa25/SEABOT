@@ -11,11 +11,6 @@ def send_reset_email(to_email: str, codigo: str):
     smtp_password = os.getenv("SMTP_PASSWORD")
     mail_from = os.getenv("MAIL_FROM")
 
-    print("SMTP_HOST:", smtp_host)
-    print("SMTP_PORT:", smtp_port)
-    print("SMTP_USER:", smtp_user)
-    print("MAIL_FROM:", mail_from)
-
     if not smtp_host or not smtp_user or not smtp_password or not mail_from:
         raise ValueError("Faltan variables SMTP en el .env")
 

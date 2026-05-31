@@ -262,7 +262,7 @@ Al continuar, confirmas que has leído y aceptas estos términos y condiciones d
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("🎉 Registro exitoso. Sesión iniciada."),
+          content: Text("Registro exitoso. Sesión iniciada."),
           backgroundColor: Colors.green,
         ),
       );

@@ -21,7 +21,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
 
   void _login() async {
     if (_formKey.currentState!.validate()) {
-      final token = await _authService.loginAdmin(
+      final token = await _authService.login(
         _userController.text.trim(),
         _passController.text.trim(),
       );

@@ -33,7 +33,7 @@ class MessageService {
     if (response.statusCode == 200 ||
         response.statusCode == 201 ||
         response.statusCode == 204) {
-      print("Resultado guardado correctamente");
+      return;
     } else {
       throw Exception("Error al crear registro emocional");
     }
@@ -84,8 +84,6 @@ class MessageService {
   Stream<String> createMessageStream(Map<String, dynamic> body) async* {
     final uri = Uri.parse("$baseUrl/createMessages/stream");
 
-    print("URL STREAMING: $uri");
-
     final request = http.Request("POST", uri);
 
     request.headers.addAll({
@@ -99,14 +97,13 @@ class MessageService {
 
     if (response.statusCode == 200 || response.statusCode == 201) {
       await for (final chunk in response.stream.transform(utf8.decoder)) {
-        print("CHUNK STREAM: $chunk");
         if (chunk.isNotEmpty) {
           yield chunk;
         }
       }
     } else {
-      final errorBody = await response.stream.bytesToString();
-      throw Exception("Error streaming ${response.statusCode}: $errorBody");
+      await response.stream.drain();
+      throw Exception("Error streaming ${response.statusCode}");
     }
   }
 }

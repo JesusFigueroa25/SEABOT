@@ -16,8 +16,6 @@ def create(
     foto: UploadFile | None = File(None),
     db: Session = Depends(get_db)
 ):
-    if foto:
-        print(f"DEBUG: El tipo de archivo recibido es: {foto.content_type}")
     try:
         support_report_service.register(db, objecto, foto)
         return {"message": "Reporte de soporte creado correctamente"}

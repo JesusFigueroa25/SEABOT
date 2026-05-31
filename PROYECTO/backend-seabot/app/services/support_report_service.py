@@ -58,8 +58,8 @@ def register(db: Session, objecto: SupportReportCreate, foto: UploadFile | None 
             ruta_foto=objecto.ruta_foto
         )
 
-    except Exception as e:
-        print(f"Error enviando correos de soporte: {str(e)}")
+    except Exception:
+        pass
 
     return report
 
@@ -127,8 +127,7 @@ def get_report_signed_image(db: Session, report_id: int):
 
     try:
         image_url = generate_signed_url(report.ruta_foto)
-    except Exception as e:
-        print(f"Error generando signed URL para reporte {report.id}: {repr(e)}")
+    except Exception:
         raise ValueError("No se pudo generar la URL de la imagen")
 
     return {
@@ -168,8 +167,7 @@ def send_admin_email_to_user(db: Session, report_id: int, subject: str, message:
             subject=subject,
             message=message
         )
-    except Exception as e:
-        print(f"Error enviando correo administrativo de soporte: {repr(e)}")
+    except Exception:
         raise ValueError("No se pudo enviar el correo al usuario")
 
     return {
