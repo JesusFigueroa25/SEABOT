@@ -63,7 +63,12 @@ def delete(db: Session, object_id: int):
 
 #Funcionalidades
 def getUsersStudent(db: Session):
-    return db.query(User).filter(User.role=="user").all()
+    return (
+        db.query(User)
+        .filter(User.role=="user")
+        .order_by(func.lower(User.nameuser).asc(), User.id.asc())
+        .all()
+    )
 
 def updateEnable(db: Session, object_id: int, objeto: UserEnable):
     db_object = get_by_id(db, object_id)
