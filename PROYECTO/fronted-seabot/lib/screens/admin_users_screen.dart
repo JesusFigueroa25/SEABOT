@@ -284,8 +284,8 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
               itemBuilder: (context, index) {
                 final usuario = resultadosData[index];
                 final activo = usuario.enable ?? false;
-
                 return Card(
+                  key: ValueKey(usuario.id),
                   color: Colors.white,
                   margin: const EdgeInsets.symmetric(
                     horizontal: 12,

@@ -65,17 +65,29 @@ def delete(db: Session, object_id: int):
 def getUsersStudent(db: Session):
     return (
         db.query(User)
-        .filter(User.role=="user")
-        .order_by(func.lower(User.nameuser).asc(), User.id.asc())
+        .filter(User.role == "user")
+        .order_by(
+            User.enable.desc(),              # Activos primero, bloqueados al final
+            func.lower(User.nameuser).asc(), # Orden alfabético estable
+            User.id.asc()                    # Desempate estable
+        )
         .all()
     )
-
+    
 def updateEnable(db: Session, object_id: int, objeto: UserEnable):
     db_object = get_by_id(db, object_id)
-    if db_object:
-        db_object.enable = objeto.enable
-        db.commit()
-        db.refresh(db_object)
+
+    if not db_object:
+        raise HTTPException(
+            status_code=404,
+            detail="Usuario no encontrado"
+        )
+
+    db_object.enable = objeto.enable
+    db.commit()
+    db.refresh(db_object)
+
+    return db_object
         
 def getLastUserID(db: Session) -> int | None:
     result = (
