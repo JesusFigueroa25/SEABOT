@@ -1,10 +1,13 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
-import 'package:shared_preferences/shared_preferences.dart';
 
 class NotificationService {
+  static const String _notificationsEnabledKey = 'notifications_enabled';
+
   static final FlutterLocalNotificationsPlugin _notifications =
       FlutterLocalNotificationsPlugin();
 
@@ -20,18 +23,73 @@ class NotificationService {
 
     final String currentTimeZone = await FlutterTimezone.getLocalTimezone();
     tz.setLocalLocation(tz.getLocation(currentTimeZone));
+  }
 
-    await _notifications
+  static Future<bool> getNotificationsPreference() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_notificationsEnabledKey) ?? false;
+  }
+
+  static Future<void> setNotificationsPreference(bool enabled) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_notificationsEnabledKey, enabled);
+  }
+
+  static Future<bool> areNotificationsAllowed() async {
+    final androidPlugin = _notifications
         .resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin
-        >()
-        ?.requestNotificationsPermission();
+        >();
+
+    if (androidPlugin == null) return true;
+
+    return await androidPlugin.areNotificationsEnabled() ?? false;
+  }
+
+  static Future<bool> requestNotificationPermission() async {
+    final androidPlugin = _notifications
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
+
+    if (androidPlugin == null) return true;
+
+    final granted = await androidPlugin.requestNotificationsPermission();
+    if (granted == true) return true;
+
+    return await areNotificationsAllowed();
+  }
+
+  static Future<bool> syncNotificationPreferenceWithPermission({
+    bool rescheduleIfEnabled = false,
+  }) async {
+    final preferenceEnabled = await getNotificationsPreference();
+
+    if (!preferenceEnabled) {
+      await cancelDailyNotifications();
+      return false;
+    }
+
+    final permissionGranted = await areNotificationsAllowed();
+    if (!permissionGranted) {
+      await setNotificationsPreference(false);
+      await cancelDailyNotifications();
+      return false;
+    }
+
+    if (rescheduleIfEnabled) {
+      await scheduleDefaultDailyNotifications();
+    }
+
+    return true;
   }
 
   static Future<void> showNotification({
     required String title,
     required String body,
   }) async {
+    if (!await areNotificationsAllowed()) return;
+
     const details = NotificationDetails(
       android: AndroidNotificationDetails(
         'main_channel',
@@ -65,14 +123,14 @@ class NotificationService {
   }
 
   static Future<void> restoreScheduledNotificationsIfEnabled() async {
-    final prefs = await SharedPreferences.getInstance();
-    final enabled = prefs.getBool('notifications_enabled') ?? false;
+    final enabled = await syncNotificationPreferenceWithPermission(
+      rescheduleIfEnabled: true,
+    );
 
     if (enabled) {
-      await scheduleDefaultDailyNotifications();
-      print('🔔 Notificaciones restauradas automáticamente');
+      debugPrint('Notificaciones restauradas automaticamente');
     } else {
-      print('🔕 Notificaciones desactivadas, no se restauran');
+      debugPrint('Notificaciones desactivadas, no se restauran');
     }
   }
 
@@ -85,7 +143,7 @@ class NotificationService {
   }) async {
     final scheduledDate = _nextInstanceOfTime(hour, minute);
 
-    print('📅 Notificación diaria programada para: $scheduledDate');
+    debugPrint('📅 Notificación diaria programada para: $scheduledDate');
 
     await _notifications.zonedSchedule(
       id,
@@ -118,7 +176,7 @@ class NotificationService {
   }) async {
     final scheduledDate = tz.TZDateTime.from(dateTime, tz.local);
 
-    print('🧪 Notificación test programada para: $scheduledDate');
+    debugPrint('🧪 Notificación test programada para: $scheduledDate');
 
     await _notifications.zonedSchedule(
       id,
@@ -157,8 +215,8 @@ class NotificationService {
       id: 2,
       title: 'Pausa del día 🌿',
       body: '¿Cómo va tu día? Tómate un momento para entrar a la app.',
-      hour: 12,
-      minute: 18,
+      hour: 13,
+      minute: 0,
     );
 
     await scheduleNotification(

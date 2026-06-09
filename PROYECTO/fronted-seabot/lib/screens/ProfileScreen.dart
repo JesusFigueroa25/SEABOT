@@ -21,7 +21,8 @@ class ProfileScreen extends StatefulWidget {
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
+class _ProfileScreenState extends State<ProfileScreen>
+    with WidgetsBindingObserver {
   int studentID = AppData.studentID;
   final TextEditingController _controllerAlias = TextEditingController();
   final TextEditingController _controllerSafeContact = TextEditingController();
@@ -77,6 +78,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     perfil = Future.value();
     _loadResult();
     _cargarPreferenciasLocales();
@@ -89,10 +91,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _controllerAlias.dispose();
     _controllerSafeContact.dispose();
     _controllerCorreo.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _cargarPreferenciasLocales();
+    }
   }
 
   void _onFormChanged() {
@@ -120,32 +130,88 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _cargarPreferenciasLocales() async {
-    bool valorGuardado = await _leerPreferenciaNotificaciones();
+    final enabled =
+        await NotificationService.syncNotificationPreferenceWithPermission(
+          rescheduleIfEnabled: true,
+        );
 
     if (!mounted) return;
     setState(() {
-      _notificaciones = valorGuardado;
+      _notificaciones = enabled;
     });
-
-    if (valorGuardado) {
-      await NotificationService.scheduleDefaultDailyNotifications();
-    }
   }
 
   Future<void> _guardarPreferenciaNotificaciones(bool valor) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('notifications_enabled', valor);
+    await NotificationService.setNotificationsPreference(valor);
   }
 
-  Future<bool> _leerPreferenciaNotificaciones() async {
-    final prefs = await SharedPreferences.getInstance();
+  void _mostrarSnackNotificaciones({
+    required String message,
+    required Color color,
+  }) {
+    if (!mounted) return;
 
-    if (!prefs.containsKey('notifications_enabled')) {
-      await prefs.setBool('notifications_enabled', true);
-      return true;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: GoogleFonts.manrope(
+            color: Colors.white,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        backgroundColor: color,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      ),
+    );
+  }
+
+  Future<void> _onNotificationsChanged(bool enabled) async {
+    if (!enabled) {
+      await _guardarPreferenciaNotificaciones(false);
+      await NotificationService.cancelDailyNotifications();
+
+      if (!mounted) return;
+      setState(() => _notificaciones = false);
+      _mostrarSnackNotificaciones(
+        message: "Notificaciones desactivadas",
+        color: Colors.orangeAccent,
+      );
+      return;
     }
 
-    return prefs.getBool('notifications_enabled') ?? true;
+    final permissionGranted =
+        await NotificationService.requestNotificationPermission();
+
+    if (!permissionGranted) {
+      await _guardarPreferenciaNotificaciones(false);
+      await NotificationService.cancelDailyNotifications();
+
+      if (!mounted) return;
+      setState(() => _notificaciones = false);
+      _mostrarSnackNotificaciones(
+        message:
+            "No se activaron las notificaciones. Habilita los permisos de notificación desde la configuración del dispositivo.",
+        color: Colors.redAccent,
+      );
+      return;
+    }
+
+    await _guardarPreferenciaNotificaciones(true);
+    await NotificationService.scheduleDefaultDailyNotifications();
+    await NotificationService.showNotification(
+      title: 'Notificaciones activadas',
+      body: 'Recibirás recordatorios a las 9:00 AM, 1:00 PM y 8:00 PM.',
+    );
+
+    if (!mounted) return;
+    setState(() => _notificaciones = true);
+    _mostrarSnackNotificaciones(
+      message:
+          "Notificaciones activadas\nRecibirás recordatorios a las 9:00 AM, 1:00 PM y 8:00 PM.",
+      color: Colors.green,
+    );
   }
 
   Future<bool> _hasInternet() async {
@@ -859,45 +925,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                       "Recordatorios diarios de bienestar",
                                   value: _notificaciones ?? false,
                                   onChanged: (val) async {
-                                    setState(() => _notificaciones = val);
-                                    await _guardarPreferenciaNotificaciones(
-                                      val,
-                                    );
-
-                                    if (val) {
-                                      await NotificationService.showNotification(
-                                        title: 'Notificaciones activadas 🔔',
-                                        body:
-                                            'Recibirás recordatorios a las 9:00 AM, 1:00 PM y 8:00 PM.',
-                                      );
-                                      await NotificationService.scheduleDefaultDailyNotifications();
-                                    } else {
-                                      await NotificationService.cancelAll();
-                                    }
-
-                                    if (!mounted) return;
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                          val
-                                              ? "🔔 Notificaciones activadas"
-                                              : "🔕 Notificaciones desactivadas",
-                                          style: GoogleFonts.manrope(
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.w700,
-                                          ),
-                                        ),
-                                        backgroundColor: val
-                                            ? Colors.green
-                                            : Colors.orangeAccent,
-                                        behavior: SnackBarBehavior.floating,
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            14,
-                                          ),
-                                        ),
-                                      ),
-                                    );
+                                    await _onNotificationsChanged(val);
                                   },
                                 ),
                               ],

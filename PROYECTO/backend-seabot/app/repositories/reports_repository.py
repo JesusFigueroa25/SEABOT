@@ -60,17 +60,20 @@ def get_actividad_semanal(db: Session):
         FROM sesiones
         GROUP BY conversation_id, session_id
     )
-    SELECT
-        DATE_TRUNC('week', d.inicio_sesion) AS semana,
-        COUNT(*) AS sesiones_totales,
-        ROUND(AVG(d.duracion_min)::numeric, 1) AS duracion_promedio_sesion,
-        ROUND(AVG(mps.total_mensajes)::numeric, 1) AS mensajes_promedio_por_sesion
-    FROM duraciones d
-    JOIN mensajes_por_sesion mps
-        ON d.conversation_id = mps.conversation_id
-       AND d.session_id = mps.session_id
-    GROUP BY DATE_TRUNC('week', d.inicio_sesion)
-    ORDER BY semana;
+SELECT
+    DATE_TRUNC('week', d.inicio_sesion) AS semana,
+    COUNT(*) AS sesiones_totales,
+    ROUND(AVG(d.duracion_min)::numeric, 1) AS duracion_promedio_sesion,
+    ROUND(AVG(mps.total_mensajes)::numeric, 1) AS mensajes_promedio_por_sesion
+FROM duraciones d
+JOIN mensajes_por_sesion mps
+    ON d.conversation_id = mps.conversation_id
+   AND d.session_id = mps.session_id
+WHERE d.duracion_min > 0
+  AND mps.total_mensajes >= 3
+GROUP BY DATE_TRUNC('week', d.inicio_sesion)
+ORDER BY semana;
+
     """)
     
     result = db.execute(query).mappings().all()

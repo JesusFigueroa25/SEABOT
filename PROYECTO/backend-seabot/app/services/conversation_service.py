@@ -6,7 +6,10 @@ from sqlalchemy.orm import Session
 from app.repositories import conversation_repository
 from app.schemas.conversation_schemas import ConversationCreate, ConversationUpdate, ConversationUpdateName, ConversationUpdateCal, ConversationCreateOpenAI
 from app.models.student_model import Student 
+from dotenv import load_dotenv
 import os
+
+load_dotenv()
 
 def register(db: Session, objecto: ConversationCreate):
     return conversation_repository.create(db, objecto)
