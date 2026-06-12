@@ -721,7 +721,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     }
   }
 
-  //Prueba
+  //Prueba de Notificaciones
   Future<void> _onTestNotificationChanged(bool enabled) async {
     if (!enabled) {
       await NotificationService.cancelTestNotification();
