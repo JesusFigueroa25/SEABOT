@@ -7,10 +7,6 @@ import 'package:timezone/timezone.dart' as tz;
 
 class NotificationService {
   static const String _notificationsEnabledKey = 'notifications_enabled';
-  static const int _quickTestNotificationId = 1001;
-  static const int _scheduledTestNotificationId = 1002;
-  static const String _testNotificationScheduledAtKey =
-      'test_notification_scheduled_at';
 
   static final FlutterLocalNotificationsPlugin _notifications =
       FlutterLocalNotificationsPlugin();
@@ -240,112 +236,5 @@ class NotificationService {
 
   static Future<void> cancelAll() async {
     await _notifications.cancelAll();
-  }
-
-  //Prueba
-  static Future<void> scheduleTestNotificationAfter({int seconds = 10}) async {
-    final allowed = await areNotificationsAllowed();
-    if (!allowed) return;
-
-    await _notifications.cancel(_quickTestNotificationId);
-
-    final scheduledDate = tz.TZDateTime.now(
-      tz.local,
-    ).add(Duration(seconds: seconds));
-
-    debugPrint('🧪 Notificación rápida QA programada para: $scheduledDate');
-
-    await _notifications.zonedSchedule(
-      _quickTestNotificationId,
-      'Prueba rápida de notificación 🧪',
-      'Esta es una notificación de prueba programada en $seconds segundos.',
-      scheduledDate,
-      const NotificationDetails(
-        android: AndroidNotificationDetails(
-          'test_channel_v2',
-          'Pruebas',
-          channelDescription: 'Canal para pruebas de notificaciones',
-          importance: Importance.max,
-          priority: Priority.high,
-          playSound: true,
-          enableVibration: true,
-          ticker: 'ticker',
-        ),
-        iOS: DarwinNotificationDetails(),
-      ),
-      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
-    );
-  }
-
-  static Future<void> scheduleTestNotificationAtFiveFifteen() async {
-    final allowed = await areNotificationsAllowed();
-    if (!allowed) return;
-
-    await _notifications.cancel(_scheduledTestNotificationId);
-
-    final scheduledDate = _nextInstanceOfTime(17, 10);
-
-    await _saveTestNotificationScheduledAt(scheduledDate);
-
-    debugPrint('🧪 Notificación QA 5:10 PM programada para: $scheduledDate');
-
-    await _notifications.zonedSchedule(
-      _scheduledTestNotificationId,
-      'Prueba programada de notificación 🧪',
-      'Esta es una notificación de prueba programada para las 5:10 PM.',
-      scheduledDate,
-      const NotificationDetails(
-        android: AndroidNotificationDetails(
-          'test_channel_v2',
-          'Pruebas',
-          channelDescription: 'Canal para pruebas de notificaciones',
-          importance: Importance.max,
-          priority: Priority.high,
-          playSound: true,
-          enableVibration: true,
-          ticker: 'ticker',
-        ),
-        iOS: DarwinNotificationDetails(),
-      ),
-      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
-    );
-  }
-
-  static Future<void> _saveTestNotificationScheduledAt(
-    tz.TZDateTime scheduledDate,
-  ) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(
-      _testNotificationScheduledAtKey,
-      scheduledDate.millisecondsSinceEpoch,
-    );
-  }
-
-  static Future<void> clearTestNotificationPreference() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_testNotificationScheduledAtKey);
-  }
-
-  static Future<bool> isTestNotificationPending() async {
-    final prefs = await SharedPreferences.getInstance();
-    final millis = prefs.getInt(_testNotificationScheduledAtKey);
-
-    if (millis == null) return false;
-
-    final scheduledDate = DateTime.fromMillisecondsSinceEpoch(millis);
-    final now = DateTime.now();
-
-    if (now.isAfter(scheduledDate)) {
-      await clearTestNotificationPreference();
-      return false;
-    }
-
-    return true;
-  }
-
-  static Future<void> cancelTestNotification() async {
-    await _notifications.cancel(_quickTestNotificationId);
-    await _notifications.cancel(_scheduledTestNotificationId);
-    await clearTestNotificationPreference();
   }
 }
