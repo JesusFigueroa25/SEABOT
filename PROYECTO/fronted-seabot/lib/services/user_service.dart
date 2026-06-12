@@ -9,7 +9,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class UserService {
   final String baseUrl =
-      "https://seabot-backend-993787742289.us-central1.run.app/users";
+      "http://192.168.0.7:8080/users";
 
   Future<User> createUser(Map<String, dynamic> body) async {
     final response = await http.post(
@@ -174,7 +174,7 @@ class UserService {
 
 class AuthService {
   final String baseUrl =
-      "https://seabot-backend-993787742289.us-central1.run.app/users";
+      "http://192.168.0.7:8080/users";
 
   final _storage = const FlutterSecureStorage();
 

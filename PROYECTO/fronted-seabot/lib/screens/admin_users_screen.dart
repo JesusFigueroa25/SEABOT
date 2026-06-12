@@ -420,6 +420,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
 
             final resultadosData = snapshot.data!;
 
+<<<<<<< HEAD
             final activos = resultadosData
                 .where((usuario) => usuario.enable ?? false)
                 .length;
@@ -518,6 +519,49 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                               ),
                             );
                           },
+=======
+            return ListView.builder(
+              itemCount: resultadosData.length,
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              itemBuilder: (context, index) {
+                final usuario = resultadosData[index];
+                final activo = usuario.enable ?? false;
+                return Card(
+                  key: ValueKey(usuario.id),
+                  color: Colors.white,
+                  margin: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 2,
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: activo
+                          ? AppColors.secundary.withOpacity(0.2)
+                          : Colors.redAccent.withOpacity(0.2),
+                      child: Icon(
+                        activo ? Icons.person : Icons.block,
+                        color: activo ? AppColors.secundary : Colors.redAccent,
+                      ),
+                    ),
+                    title: Text(
+                      usuario.nameuser,
+                      style: GoogleFonts.manrope(
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    trailing: PopupMenuButton<String>(
+                      color: Colors.white,
+                      icon: const Icon(Icons.more_vert, color: Colors.black87),
+                      itemBuilder: (context) => [
+                        const PopupMenuItem(
+                          value: "ver",
+                          child: Text("Visualizar"),
+>>>>>>> origin/main
                         ),
                 ),
               ],
