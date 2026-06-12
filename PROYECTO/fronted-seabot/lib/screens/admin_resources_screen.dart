@@ -188,8 +188,8 @@ class _AdminResourcesScreenState extends State<AdminResourcesScreen> {
                   SnackBar(
                     content: Text(
                       resource == null
-                          ? "✅ Recurso agregado correctamente"
-                          : "✅ Recurso actualizado correctamente",
+                          ? "Recurso agregado correctamente"
+                          : "Recurso actualizado correctamente",
                     ),
                     backgroundColor: AppColors.secundary,
                   ),

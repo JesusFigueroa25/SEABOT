@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import '../models/emotional_register.dart';
 
 class EmotionalRegisterService {
-  final String baseUrl = "http://192.168.0.7:8080/emotionalregisters";
+  final String baseUrl = "https://seabot-backend-993787742289.us-central1.run.app/emotionalregisters";
 
 
   Future<void> createRegister(Map<String, dynamic> body) async {

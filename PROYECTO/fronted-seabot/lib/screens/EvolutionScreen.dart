@@ -729,8 +729,12 @@ class _EvolutionScreenState extends State<EvolutionScreen> {
                         ).withOpacity(0.16),
                         shape: BoxShape.circle,
                       ),
-                      child: const Center(
-                        child: Text("📅", style: TextStyle(fontSize: 20)),
+                      child: Center(
+                        child: Icon(
+                          Icons.event_note_rounded,
+                          size: 22,
+                          color: getPhqColor(selectedResult!.totalScore ?? 0),
+                        ),
                       ),
                     ),
                     const SizedBox(width: 12),

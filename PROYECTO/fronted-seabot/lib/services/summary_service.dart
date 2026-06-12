@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import '../models/summary.dart';
 
 class SummaryService {
-  final String baseUrl = "http://192.168.0.7:8080/summaries";
+  final String baseUrl = "https://seabot-backend-993787742289.us-central1.run.app/summaries";
 
 
   Future<void> createSummary(Map<String, dynamic> body) async {

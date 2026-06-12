@@ -4,7 +4,7 @@ import '../models/student.dart';
 
 class StudentService {
   final String baseUrl =
-      "http://192.168.0.7:8080/students";
+      "https://seabot-backend-993787742289.us-central1.run.app/students";
 
   Future<Student> createStudent(Map<String, dynamic> body) async {
     final response = await http.post(
