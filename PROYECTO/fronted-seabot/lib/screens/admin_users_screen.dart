@@ -262,9 +262,13 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
-            } else if (snapshot.hasError) {
+            }
+
+            if (snapshot.hasError) {
               return _buildConnectionError();
-            } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            }
+
+            if (!snapshot.hasData || snapshot.data!.isEmpty) {
               return Center(
                 child: Text(
                   "No hay datos disponibles.",
