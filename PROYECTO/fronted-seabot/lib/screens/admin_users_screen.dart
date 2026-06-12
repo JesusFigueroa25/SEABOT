@@ -12,9 +12,12 @@ class AdminUsersScreen extends StatefulWidget {
   State<AdminUsersScreen> createState() => _AdminUsersScreenState();
 }
 
+enum _FiltroUsuarios { todos, activos, inactivos }
+
 class _AdminUsersScreenState extends State<AdminUsersScreen> {
   final UserService serviceController = UserService();
   late Future<List<User>> resultados;
+  _FiltroUsuarios _filtroUsuarios = _FiltroUsuarios.todos;
 
   @override
   void initState() {
@@ -22,7 +25,146 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
     resultados = serviceController.getUsersStudent();
   }
 
-  // 🔹 Ver detalles del usuario
+  List<User> _filtrarUsuarios(List<User> usuarios) {
+    switch (_filtroUsuarios) {
+      case _FiltroUsuarios.activos:
+        return usuarios.where((usuario) => usuario.enable ?? false).toList();
+
+      case _FiltroUsuarios.inactivos:
+        return usuarios.where((usuario) => !(usuario.enable ?? false)).toList();
+
+      case _FiltroUsuarios.todos:
+        final usuariosOrdenados = List<User>.from(usuarios);
+
+        usuariosOrdenados.sort((a, b) {
+          final aActivo = a.enable ?? false;
+          final bActivo = b.enable ?? false;
+
+          if (aActivo == bActivo) return 0;
+
+          // Activos arriba, inactivos abajo
+          return aActivo ? -1 : 1;
+        });
+
+        return usuariosOrdenados;
+    }
+  }
+
+  Widget _buildFiltrosUsuarios({
+    required int total,
+    required int activos,
+    required int inactivos,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
+      color: const Color(0xFFF7F9FB),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            _buildFiltroChip(
+              label: "Todos",
+              count: total,
+              icon: Icons.people_alt_rounded,
+              filtro: _FiltroUsuarios.todos,
+              color: AppColors.primaryDarkText,
+            ),
+            const SizedBox(width: 8),
+            _buildFiltroChip(
+              label: "Activos",
+              count: activos,
+              icon: Icons.check_circle_rounded,
+              filtro: _FiltroUsuarios.activos,
+              color: AppColors.secondaryDarkText,
+            ),
+            const SizedBox(width: 8),
+            _buildFiltroChip(
+              label: "Inactivos",
+              count: inactivos,
+              icon: Icons.block_rounded,
+              filtro: _FiltroUsuarios.inactivos,
+              color: AppColors.rojo,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFiltroChip({
+    required String label,
+    required int count,
+    required IconData icon,
+    required _FiltroUsuarios filtro,
+    required Color color,
+  }) {
+    final selected = _filtroUsuarios == filtro;
+
+    return ChoiceChip(
+      selected: selected,
+      showCheckmark: false,
+      backgroundColor: AppColors.cardLight,
+      selectedColor: color,
+      side: BorderSide(color: selected ? color : color.withOpacity(0.35)),
+      avatar: Icon(icon, size: 18, color: selected ? AppColors.white : color),
+      label: Text(
+        "$label ($count)",
+        style: GoogleFonts.manrope(
+          fontWeight: FontWeight.w700,
+          color: selected ? AppColors.white : AppColors.textLight,
+        ),
+      ),
+      onSelected: (_) {
+        setState(() {
+          _filtroUsuarios = filtro;
+        });
+      },
+    );
+  }
+
+  Widget _buildEmptyFilterState() {
+    String message;
+
+    switch (_filtroUsuarios) {
+      case _FiltroUsuarios.activos:
+        message = "No hay usuarios activos.";
+        break;
+      case _FiltroUsuarios.inactivos:
+        message = "No hay usuarios inactivos.";
+        break;
+      case _FiltroUsuarios.todos:
+        message = "No hay usuarios disponibles.";
+        break;
+    }
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.filter_alt_off_rounded,
+              size: 46,
+              color: AppColors.subtitleLight.withOpacity(0.8),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.manrope(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: AppColors.subtitleLight,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _verUsuario(User usuario) async {
     Student estudiante = await serviceController.usersDetail(usuario.id);
 
@@ -278,6 +420,106 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
 
             final resultadosData = snapshot.data!;
 
+<<<<<<< HEAD
+            final activos = resultadosData
+                .where((usuario) => usuario.enable ?? false)
+                .length;
+
+            final inactivos = resultadosData
+                .where((usuario) => !(usuario.enable ?? false))
+                .length;
+
+            final usuariosFiltrados = _filtrarUsuarios(resultadosData);
+
+            return Column(
+              children: [
+                _buildFiltrosUsuarios(
+                  total: resultadosData.length,
+                  activos: activos,
+                  inactivos: inactivos,
+                ),
+
+                Expanded(
+                  child: usuariosFiltrados.isEmpty
+                      ? _buildEmptyFilterState()
+                      : ListView.builder(
+                          itemCount: usuariosFiltrados.length,
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          itemBuilder: (context, index) {
+                            final usuario = usuariosFiltrados[index];
+                            final activo = usuario.enable ?? false;
+
+                            return Card(
+                              color: Colors.white,
+                              margin: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              elevation: 2,
+                              child: ListTile(
+                                leading: CircleAvatar(
+                                  backgroundColor: activo
+                                      ? AppColors.secundary.withOpacity(0.2)
+                                      : AppColors.rojo.withOpacity(0.2),
+                                  child: Icon(
+                                    activo ? Icons.person : Icons.block,
+                                    color: activo
+                                        ? AppColors.secondaryDarkText
+                                        : AppColors.rojo,
+                                  ),
+                                ),
+                                title: Text(
+                                  usuario.nameuser,
+                                  style: GoogleFonts.manrope(
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.textLight,
+                                  ),
+                                ),
+                                subtitle: Text(
+                                  activo
+                                      ? "Usuario activo"
+                                      : "Usuario inactivo",
+                                  style: GoogleFonts.manrope(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                    color: activo
+                                        ? AppColors.secondaryDarkText
+                                        : AppColors.rojo,
+                                  ),
+                                ),
+                                trailing: PopupMenuButton<String>(
+                                  color: Colors.white,
+                                  icon: const Icon(
+                                    Icons.more_vert,
+                                    color: Colors.black87,
+                                  ),
+                                  itemBuilder: (context) => [
+                                    const PopupMenuItem(
+                                      value: "ver",
+                                      child: Text("Visualizar"),
+                                    ),
+                                    PopupMenuItem(
+                                      value: "bloquear",
+                                      child: Text(
+                                        activo ? "Bloquear" : "Desbloquear",
+                                      ),
+                                    ),
+                                  ],
+                                  onSelected: (value) {
+                                    if (value == "ver") {
+                                      _verUsuario(usuario);
+                                    } else if (value == "bloquear") {
+                                      _bloquearUsuario(usuario);
+                                    }
+                                  },
+                                ),
+                              ),
+                            );
+                          },
+=======
             return ListView.builder(
               itemCount: resultadosData.length,
               padding: const EdgeInsets.symmetric(vertical: 8),
@@ -319,23 +561,10 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                         const PopupMenuItem(
                           value: "ver",
                           child: Text("Visualizar"),
+>>>>>>> origin/main
                         ),
-                        PopupMenuItem(
-                          value: "bloquear",
-                          child: Text(activo ? "Bloquear" : "Desbloquear"),
-                        ),
-                      ],
-                      onSelected: (value) {
-                        if (value == "ver") {
-                          _verUsuario(usuario);
-                        } else if (value == "bloquear") {
-                          _bloquearUsuario(usuario);
-                        }
-                      },
-                    ),
-                  ),
-                );
-              },
+                ),
+              ],
             );
           },
         ),
