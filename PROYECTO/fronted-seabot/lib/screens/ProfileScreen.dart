@@ -767,8 +767,6 @@ class _ProfileScreenState extends State<ProfileScreen>
     );
   }
 
-  //13/06/2026
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
