@@ -709,6 +709,54 @@ class _ProfileScreenState extends State<ProfileScreen>
     }
   }
 
+  //Prueba de Notificaciones
+  Future<void> _onTestNotificationChanged(bool enabled) async {
+    if (!enabled) {
+      await NotificationService.cancelTestNotification();
+
+      if (!mounted) return;
+      setState(() => _notificacionPruebaActiva = false);
+
+      _mostrarSnackNotificaciones(
+        message: "Prueba de notificación cancelada",
+        color: Colors.orangeAccent,
+      );
+      return;
+    }
+
+    final permissionGranted =
+        await NotificationService.requestNotificationPermission();
+
+    if (!permissionGranted) {
+      await NotificationService.cancelTestNotification();
+
+      if (!mounted) return;
+      setState(() => _notificacionPruebaActiva = false);
+
+      _mostrarSnackNotificaciones(
+        message:
+            "No se pudo programar la prueba. Habilita los permisos de notificación en la tablet.",
+        color: Colors.redAccent,
+      );
+      return;
+    }
+
+    await NotificationService.scheduleTestNotificationAfter(seconds: 10);
+    await NotificationService.scheduleTestNotificationAtFiveFifteen();
+
+    final pending = await NotificationService.isTestNotificationPending();
+
+    if (!mounted) return;
+    setState(() => _notificacionPruebaActiva = pending);
+
+    _mostrarSnackNotificaciones(
+      message: "Pruebas programadas: una en 10 segundos y otra a las 5:10 PM",
+      color: Colors.green,
+    );
+  }
+
+  //13/06/2026
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -928,6 +976,20 @@ class _ProfileScreenState extends State<ProfileScreen>
                                     await _onNotificationsChanged(val);
                                   },
                                 ),
+
+                                // _buildDivider(isDark),
+                                // _buildSwitchTile(
+                                //   isDark: isDark,
+                                //   icon: Icons.timer_rounded,
+                                //   iconColor: Colors.blueAccent,
+                                //   title: "Prueba de notificación",
+                                //   subtitle:
+                                //       "Programa una notificación en segundos",
+                                //   value: _notificacionPruebaActiva,
+                                //   onChanged: (val) async {
+                                //     await _onTestNotificationChanged(val);
+                                //   },
+                                // ),
                               ],
                             ),
                           ),
