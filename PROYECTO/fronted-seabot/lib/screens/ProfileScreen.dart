@@ -767,6 +767,8 @@ class _ProfileScreenState extends State<ProfileScreen>
     );
   }
 
+  //13/06/2026
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -987,19 +989,19 @@ class _ProfileScreenState extends State<ProfileScreen>
                                   },
                                 ),
 
-                               // _buildDivider(isDark),
-                               // _buildSwitchTile(
-                               //   isDark: isDark,
-                               //   icon: Icons.timer_rounded,
-                               //   iconColor: Colors.blueAccent,
-                               //   title: "Prueba de notificación",
-                               //   subtitle:
-                               //       "Programa una notificación en segundos",
-                               //   value: _notificacionPruebaActiva,
-                               //   onChanged: (val) async {
-                               //     await _onTestNotificationChanged(val);
-                               //   },
-                               // ),
+                                // _buildDivider(isDark),
+                                // _buildSwitchTile(
+                                //   isDark: isDark,
+                                //   icon: Icons.timer_rounded,
+                                //   iconColor: Colors.blueAccent,
+                                //   title: "Prueba de notificación",
+                                //   subtitle:
+                                //       "Programa una notificación en segundos",
+                                //   value: _notificacionPruebaActiva,
+                                //   onChanged: (val) async {
+                                //     await _onTestNotificationChanged(val);
+                                //   },
+                                // ),
                               ],
                             ),
                           ),
