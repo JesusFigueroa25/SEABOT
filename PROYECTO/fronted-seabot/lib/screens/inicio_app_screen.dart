@@ -180,9 +180,9 @@ class _InicioAppScreenState extends State<InicioAppScreen>
 
     if (!mounted) return;
 
-    navigatorKey.currentState?.pushReplacement(
-      MaterialPageRoute(builder: (_) => const Home()),
-    );
+    Navigator.of(
+      context,
+    ).pushReplacement(MaterialPageRoute(builder: (_) => const Home()));
   }
 
   Future<void> _clearSessionAndGoToWelcome() async {
@@ -201,9 +201,9 @@ class _InicioAppScreenState extends State<InicioAppScreen>
 
     if (!mounted) return;
 
-    navigatorKey.currentState?.pushReplacement(
-      MaterialPageRoute(builder: (_) => const SplashScreen()),
-    );
+    Navigator.of(
+      context,
+    ).pushReplacement(MaterialPageRoute(builder: (_) => const SplashScreen()));
   }
 
   @override

@@ -38,6 +38,7 @@ class _ProfileScreenState extends State<ProfileScreen>
   String _avatar = "😀";
   bool? _notificaciones;
   bool _notificacionPruebaActiva = false;
+  bool _pruebaCanalDiarioEnCurso = false;
 
   final List<String> _avatarImages = [
     'assets/avatars/avatar1.png',
@@ -142,14 +143,14 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   Future<void> _cargarPreferenciasLocales() async {
-    final enabled =
+    final result =
         await NotificationService.syncNotificationPreferenceWithPermission(
           rescheduleIfEnabled: true,
         );
 
     if (!mounted) return;
     setState(() {
-      _notificaciones = enabled;
+      _notificaciones = result.success;
     });
   }
 
@@ -193,8 +194,19 @@ class _ProfileScreenState extends State<ProfileScreen>
       return;
     }
 
-    final permissionGranted =
+    final permissionRequested =
         await NotificationService.requestNotificationPermission();
+
+    await Future.delayed(const Duration(milliseconds: 700));
+
+    final permissionGranted =
+        permissionRequested ||
+        await NotificationService.areNotificationsAllowed();
+
+    debugPrint(
+      '[ProfileScreen] permissionRequested=$permissionRequested, '
+      'permissionGranted=$permissionGranted',
+    );
 
     if (!permissionGranted) {
       await _guardarPreferenciaNotificaciones(false);
@@ -210,18 +222,35 @@ class _ProfileScreenState extends State<ProfileScreen>
       return;
     }
 
+    final result = await NotificationService.scheduleDefaultDailyNotifications(
+      force: true,
+    );
+
+    if (!result.success) {
+      await _guardarPreferenciaNotificaciones(false);
+      await NotificationService.cancelDailyNotifications();
+
+      if (!mounted) return;
+      setState(() => _notificaciones = false);
+      _mostrarSnackNotificaciones(
+        message:
+            "No se activaron las notificaciones diarias. Revisa permisos y configuración del canal.",
+        color: Colors.redAccent,
+      );
+      return;
+    }
+
     await _guardarPreferenciaNotificaciones(true);
-    await NotificationService.scheduleDefaultDailyNotifications();
     await NotificationService.showNotification(
       title: 'Notificaciones activadas',
-      body: 'Recibirás recordatorios a las 9:00 AM, 1:00 PM y 8:00 PM.',
+      body: 'Recibirás recordatorios a las 9:00 AM, 1:00 PM, 6:00 PM y 8:00 PM.',
     );
 
     if (!mounted) return;
     setState(() => _notificaciones = true);
     _mostrarSnackNotificaciones(
       message:
-          "Notificaciones activadas\nRecibirás recordatorios a las 9:00 AM, 1:00 PM y 8:00 PM.",
+          "Notificaciones activadas\nRecibirás recordatorios a las 9:00 AM, 1:00 PM, 6:00 PM y 8:00 PM.",
       color: Colors.green,
     );
   }
@@ -753,17 +782,65 @@ class _ProfileScreenState extends State<ProfileScreen>
       return;
     }
 
-    await NotificationService.scheduleTestNotificationAfter(seconds: 10);
-    await NotificationService.scheduleTestNotificationAtFiveFifteen();
+    final quickScheduled =
+        await NotificationService.scheduleTestNotificationAfter(seconds: 10);
+    final scheduledAt =
+        await NotificationService.scheduleTestNotificationAtFiveFifteen();
 
     final pending = await NotificationService.isTestNotificationPending();
 
     if (!mounted) return;
-    setState(() => _notificacionPruebaActiva = pending);
+    setState(
+      () =>
+          _notificacionPruebaActiva = quickScheduled && scheduledAt && pending,
+    );
+
+    if (!quickScheduled || !scheduledAt || !pending) {
+      _mostrarSnackNotificaciones(
+        message: "No se pudieron programar todas las pruebas de notificación.",
+        color: Colors.redAccent,
+      );
+      return;
+    }
 
     _mostrarSnackNotificaciones(
       message: "Pruebas programadas: una en 10 segundos y otra a las 5:10 PM",
       color: Colors.green,
+    );
+  }
+
+  Future<void> _onDailyChannelDiagnosticPressed() async {
+    if (_pruebaCanalDiarioEnCurso) return;
+
+    setState(() => _pruebaCanalDiarioEnCurso = true);
+
+    final permissionGranted =
+        await NotificationService.requestNotificationPermission();
+
+    if (!permissionGranted) {
+      if (!mounted) return;
+      setState(() => _pruebaCanalDiarioEnCurso = false);
+      _mostrarSnackNotificaciones(
+        message:
+            "No se pudo programar la prueba del canal diario. Habilita los permisos de notificación.",
+        color: Colors.redAccent,
+      );
+      return;
+    }
+
+    final scheduled =
+        await NotificationService.scheduleDailyChannelDiagnosticNotificationAfter(
+          seconds: 10,
+        );
+
+    if (!mounted) return;
+    setState(() => _pruebaCanalDiarioEnCurso = false);
+
+    _mostrarSnackNotificaciones(
+      message: scheduled
+          ? "Prueba del canal diario programada en 10 segundos"
+          : "No se pudo programar la prueba del canal diario",
+      color: scheduled ? Colors.green : Colors.redAccent,
     );
   }
 
@@ -986,6 +1063,22 @@ class _ProfileScreenState extends State<ProfileScreen>
                                     await _onNotificationsChanged(val);
                                   },
                                 ),
+                                //_buildDivider(isDark),
+                                //_buildActionTile(
+                                //  isDark: isDark,
+                                //  icon: Icons.notification_important_rounded,
+                                //  iconColor: Colors.deepOrange,
+                                //  title: "Probar canal diario",
+                                //  subtitle:
+                                //      "Recordatorios diarios, 10 segundos",
+                                //  buttonLabel: _pruebaCanalDiarioEnCurso
+                                //      ? "Probando"
+                                //      : "Probar",
+                                //  loading: _pruebaCanalDiarioEnCurso,
+                                //  onPressed: _pruebaCanalDiarioEnCurso
+                                //      ? null
+                                //      : _onDailyChannelDiagnosticPressed,
+                                //),
 
                                 // _buildDivider(isDark),
                                 // _buildSwitchTile(
@@ -1373,7 +1466,7 @@ class _ProfileScreenState extends State<ProfileScreen>
           width: 50,
           height: 50,
           decoration: BoxDecoration(
-            color: iconColor.withOpacity(0.12),
+            color: iconColor.withValues(alpha: 0.12),
             borderRadius: BorderRadius.circular(16),
           ),
           child: Icon(icon, color: iconColor, size: 25),
@@ -1407,6 +1500,68 @@ class _ProfileScreenState extends State<ProfileScreen>
           value: value,
           activeColor: AppColors.secondaryDark,
           onChanged: onChanged,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildActionTile({
+    required bool isDark,
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required String subtitle,
+    required String buttonLabel,
+    required VoidCallback? onPressed,
+    bool loading = false,
+  }) {
+    return Row(
+      children: [
+        Container(
+          width: 50,
+          height: 50,
+          decoration: BoxDecoration(
+            color: iconColor.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Icon(icon, color: iconColor, size: 25),
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: GoogleFonts.manrope(
+                  fontSize: 15.2,
+                  fontWeight: FontWeight.w800,
+                  color: isDark ? Colors.white : const Color(0xFF18202A),
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                subtitle,
+                style: GoogleFonts.manrope(
+                  fontSize: 13.2,
+                  fontWeight: FontWeight.w500,
+                  color: isDark ? Colors.white70 : Colors.black54,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 12),
+        OutlinedButton.icon(
+          onPressed: onPressed,
+          icon: loading
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.play_arrow_rounded),
+          label: Text(buttonLabel),
         ),
       ],
     );
