@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 
 class AppColors {
   // 🌞 Tema Claro
-  static const Color primary = Color.fromRGBO(163, 213, 244, 1); // Azul cielo pastel
+  static const Color primary = Color(0xFFA3D5F4); // Azul cielo pastel
   static const Color secundary = Color(0xFF9FE2D4); // Verde menta claro
   static const Color secundaryStart = Color(0xFF49c9b0); // Verde menta claro
   static const Color accent = Color(0xFFFFB6A0); // Coral pastel
