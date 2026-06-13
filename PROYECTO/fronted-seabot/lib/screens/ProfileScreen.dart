@@ -84,11 +84,21 @@ class _ProfileScreenState extends State<ProfileScreen>
     perfil = Future.value();
     _loadResult();
     _cargarPreferenciasLocales();
+    _cargarEstadoNotificacionPrueba();
     _cargarAvatarLocal();
 
     _controllerAlias.addListener(_onFormChanged);
     _controllerSafeContact.addListener(_onFormChanged);
     _controllerCorreo.addListener(_onFormChanged);
+  }
+
+  Future<void> _cargarEstadoNotificacionPrueba() async {
+    final pending = await NotificationService.isTestNotificationPending();
+
+    if (!mounted) return;
+    setState(() {
+      _notificacionPruebaActiva = pending;
+    });
   }
 
   @override
@@ -104,6 +114,7 @@ class _ProfileScreenState extends State<ProfileScreen>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       _cargarPreferenciasLocales();
+      _cargarEstadoNotificacionPrueba();
     }
   }
 
@@ -1052,22 +1063,22 @@ class _ProfileScreenState extends State<ProfileScreen>
                                     await _onNotificationsChanged(val);
                                   },
                                 ),
-                                //_buildDivider(isDark),
-                                //_buildActionTile(
-                                //  isDark: isDark,
-                                //  icon: Icons.notification_important_rounded,
-                                //  iconColor: Colors.deepOrange,
-                                //  title: "Probar canal diario",
-                                //  subtitle:
-                                //      "Recordatorios diarios, 10 segundos",
-                                //  buttonLabel: _pruebaCanalDiarioEnCurso
-                                //      ? "Probando"
-                                //      : "Probar",
-                                //  loading: _pruebaCanalDiarioEnCurso,
-                                //  onPressed: _pruebaCanalDiarioEnCurso
-                                //      ? null
-                                //      : _onDailyChannelDiagnosticPressed,
-                                //),
+                                _buildDivider(isDark),
+                                _buildActionTile(
+                                  isDark: isDark,
+                                  icon: Icons.notification_important_rounded,
+                                  iconColor: Colors.deepOrange,
+                                  title: "Probar canal diario",
+                                  subtitle:
+                                      "Recordatorios diarios, 10 segundos",
+                                  buttonLabel: _pruebaCanalDiarioEnCurso
+                                      ? "Probando"
+                                      : "Probar",
+                                  loading: _pruebaCanalDiarioEnCurso,
+                                  onPressed: _pruebaCanalDiarioEnCurso
+                                      ? null
+                                      : _onDailyChannelDiagnosticPressed,
+                                ),
 
                                 // _buildDivider(isDark),
                                 // _buildSwitchTile(
