@@ -37,7 +37,6 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   String _avatar = "😀";
   bool? _notificaciones;
-  bool _notificacionPruebaActiva = false;
 
   final List<String> _avatarImages = [
     'assets/avatars/avatar1.png',
@@ -83,21 +82,11 @@ class _ProfileScreenState extends State<ProfileScreen>
     perfil = Future.value();
     _loadResult();
     _cargarPreferenciasLocales();
-    _cargarEstadoNotificacionPrueba();
     _cargarAvatarLocal();
 
     _controllerAlias.addListener(_onFormChanged);
     _controllerSafeContact.addListener(_onFormChanged);
     _controllerCorreo.addListener(_onFormChanged);
-  }
-
-  Future<void> _cargarEstadoNotificacionPrueba() async {
-    final pending = await NotificationService.isTestNotificationPending();
-
-    if (!mounted) return;
-    setState(() {
-      _notificacionPruebaActiva = pending;
-    });
   }
 
   @override
@@ -113,7 +102,6 @@ class _ProfileScreenState extends State<ProfileScreen>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       _cargarPreferenciasLocales();
-      _cargarEstadoNotificacionPrueba();
     }
   }
 
