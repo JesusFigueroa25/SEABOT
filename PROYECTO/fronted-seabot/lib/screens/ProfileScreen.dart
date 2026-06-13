@@ -243,7 +243,8 @@ class _ProfileScreenState extends State<ProfileScreen>
     await _guardarPreferenciaNotificaciones(true);
     await NotificationService.showNotification(
       title: 'Notificaciones activadas',
-      body: 'Recibirás recordatorios a las 9:00 AM, 1:00 PM, 6:00 PM y 8:00 PM.',
+      body:
+          'Recibirás recordatorios a las 9:00 AM, 1:00 PM, 6:00 PM y 8:00 PM.',
     );
 
     if (!mounted) return;
@@ -1063,7 +1064,9 @@ class _ProfileScreenState extends State<ProfileScreen>
                                     await _onNotificationsChanged(val);
                                   },
                                 ),
-                                _buildDivider(isDark),
+
+                                //Prueba de Notificacion Instantanea - 10 Segundos
+                                /* _buildDivider(isDark),
                                 _buildActionTile(
                                   isDark: isDark,
                                   icon: Icons.notification_important_rounded,
@@ -1078,53 +1081,11 @@ class _ProfileScreenState extends State<ProfileScreen>
                                   onPressed: _pruebaCanalDiarioEnCurso
                                       ? null
                                       : _onDailyChannelDiagnosticPressed,
-                                ),
-
-                                // _buildDivider(isDark),
-                                // _buildSwitchTile(
-                                //   isDark: isDark,
-                                //   icon: Icons.timer_rounded,
-                                //   iconColor: Colors.blueAccent,
-                                //   title: "Prueba de notificación",
-                                //   subtitle:
-                                //       "Programa una notificación en segundos",
-                                //   value: _notificacionPruebaActiva,
-                                //   onChanged: (val) async {
-                                //     await _onTestNotificationChanged(val);
-                                //   },
-                                // ),
+                                ),*/
                               ],
                             ),
                           ),
-                          const SizedBox(height: 20),
 
-                          const SizedBox(height: 24),
-                          const SizedBox(height: 24),
-                          //SizedBox(
-                          //  width: double.infinity,
-                          //  child: FilledButton.icon(
-                          //    onPressed: _onSavePressed,
-                          //    icon: const Icon(Icons.save_rounded),
-                          //    label: Text(
-                          //      "Guardar cambios",
-                          //      style: GoogleFonts.manrope(
-                          //        fontSize: 15,
-                          //        fontWeight: FontWeight.w800,
-                          //      ),
-                          //    ),
-                          //    style: FilledButton.styleFrom(
-                          //      backgroundColor: AppColors.secundary,
-                          //      foregroundColor: Colors.white,
-                          //      elevation: 0,
-                          //      padding: const EdgeInsets.symmetric(
-                          //        vertical: 16,
-                          //      ),
-                          //      shape: RoundedRectangleBorder(
-                          //        borderRadius: BorderRadius.circular(18),
-                          //      ),
-                          //    ),
-                          //  ),
-                          //),
                           if (!isLoading && student == null) ...[
                             const SizedBox(height: 16),
                             Center(
