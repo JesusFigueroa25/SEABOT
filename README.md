@@ -9,7 +9,7 @@ A continuación, se muestran las principales vistas de la aplicación móvil SEA
 ### 🔐 Inicio de sesión y registro
 
 <p align="center">
-  <img src="./assets/login_user.png" alt="Login Usuario" width="520"/>
+  <img src="./assets/login_user.png" alt="Login Usuario" width="700"/>
 </p>
 
 <p align="center">
@@ -21,7 +21,7 @@ A continuación, se muestran las principales vistas de la aplicación móvil SEA
 ### 🏠 Pantalla principal y recursos de bienestar
 
 <p align="center">
-  <img src="./assets/home_user.png" alt="Home Usuario" width="720"/>
+  <img src="./assets/home_user.png" alt="Home Usuario" width="900"/>
 </p>
 
 <p align="center">
@@ -33,7 +33,7 @@ A continuación, se muestran las principales vistas de la aplicación móvil SEA
 ### 💬 Interacción con el chatbot de apoyo emocional
 
 <p align="center">
-  <img src="./assets/chat.png" alt="Chatbot" width="330"/>
+  <img src="./assets/chat.png" alt="Chatbot" width="500"/>
 </p>
 
 <p align="center">
@@ -45,7 +45,7 @@ A continuación, se muestran las principales vistas de la aplicación móvil SEA
 ### 🧪 Test PHQ-9
 
 <p align="center">
-  <img src="./assets/phq9.png" alt="Test PHQ-9" width="520"/>
+  <img src="./assets/phq9.png" alt="Test PHQ-9" width="800"/>
 </p>
 
 <p align="center">
@@ -69,7 +69,7 @@ A continuación, se muestran las principales vistas de la aplicación móvil SEA
 ### 🗂️ Gestión de conversaciones
 
 <p align="center">
-  <img src="./assets/conversations.png" alt="Conversaciones" width="520"/>
+  <img src="./assets/conversations.png" alt="Conversaciones" width="720"/>
 </p>
 
 <p align="center">
@@ -81,7 +81,7 @@ A continuación, se muestran las principales vistas de la aplicación móvil SEA
 ### 👤 Perfil del usuario
 
 <p align="center">
-  <img src="./assets/profile.png" alt="Perfil Usuario" width="330"/>
+  <img src="./assets/profile.png" alt="Perfil Usuario" width="920"/>
 </p>
 
 <p align="center">
@@ -107,7 +107,7 @@ A continuación, se muestran las principales vistas de la aplicación móvil SEA
 ### 👥 Gestión de usuarios
 
 <p align="center">
-  <img src="./assets/admin_users.png" alt="Gestión de Usuarios" width="620"/>
+  <img src="./assets/admin_users.png" alt="Gestión de Usuarios" width="920"/>
 </p>
 
 <p align="center">
@@ -119,7 +119,7 @@ A continuación, se muestran las principales vistas de la aplicación móvil SEA
 ### 📚 Gestión de recursos de apoyo
 
 <p align="center">
-  <img src="./assets/admin_resources.png" alt="Recursos de Apoyo" width="620"/>
+  <img src="./assets/admin_resources.png" alt="Recursos de Apoyo" width="920"/>
 </p>
 
 <p align="center">
