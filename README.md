@@ -9,7 +9,7 @@ A continuación, se muestran las principales vistas de la aplicación móvil SEA
 ### 🔐 Inicio de sesión y registro
 
 <p align="center">
-  <img src="./assets/login_user.png" alt="Login Usuario" width="700"/>
+  <img src="./assets/login_user.png" alt="Login Usuario" width="800"/>
 </p>
 
 <p align="center">
@@ -21,7 +21,7 @@ A continuación, se muestran las principales vistas de la aplicación móvil SEA
 ### 🏠 Pantalla principal y recursos de bienestar
 
 <p align="center">
-  <img src="./assets/home_user.png" alt="Home Usuario" width="900"/>
+  <img src="./assets/home_user.png" alt="Home Usuario" width="1000"/>
 </p>
 
 <p align="center">
@@ -33,7 +33,7 @@ A continuación, se muestran las principales vistas de la aplicación móvil SEA
 ### 💬 Interacción con el chatbot de apoyo emocional
 
 <p align="center">
-  <img src="./assets/chat.png" alt="Chatbot" width="500"/>
+  <img src="./assets/chat.png" alt="Chatbot" width="600"/>
 </p>
 
 <p align="center">
