@@ -6,10 +6,6 @@
 
 **SEABOT** es una aplicación móvil inteligente orientada al apoyo emocional, monitoreo del estado anímico y detección temprana de posibles riesgos emocionales en jóvenes universitarios.
 
-<br>
-
-<img src="./assets/home_user.png" alt="SEABOT Home" width="260"/>
-
 <br><br>
 
 ![Flutter](https://img.shields.io/badge/Frontend-Flutter-02569B?logo=flutter\&logoColor=white)
