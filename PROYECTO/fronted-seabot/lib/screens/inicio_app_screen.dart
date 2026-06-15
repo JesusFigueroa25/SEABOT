@@ -8,7 +8,7 @@ import 'package:seabot/core/app_data.dart';
 import 'package:seabot/screens/bienvenida_screen.dart';
 import 'package:seabot/screens/home_screen.dart';
 import 'package:seabot/services/user_service.dart';
-import 'package:seabot/main.dart';
+//import 'package:seabot/main.dart';
 
 class InicioAppScreen extends StatefulWidget {
   const InicioAppScreen({super.key});
