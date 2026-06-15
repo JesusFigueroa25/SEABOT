@@ -241,6 +241,10 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
   //                     CA1 – Actividad Semanal
   // ===========================================================
   Widget actividadSemanalChart(List<WeeklyActivity> data) {
+    if (data.isEmpty) {
+      return Text("No hay datos disponibles.", style: GoogleFonts.manrope());
+    }
+
     final sesiones = <FlSpot>[];
     final duracion = <FlSpot>[];
     final mensajes = <FlSpot>[];
@@ -251,69 +255,222 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
       mensajes.add(FlSpot(i.toDouble(), data[i].mensajesPromedio));
     }
 
-    final maxValue =
-        [
-          ...sesiones.map((e) => e.y),
-          ...duracion.map((e) => e.y),
-          ...mensajes.map((e) => e.y),
-        ].reduce((a, b) => a > b ? a : b) *
-        1.3;
+    final valoresY = [
+      ...sesiones.map((e) => e.y),
+      ...duracion.map((e) => e.y),
+      ...mensajes.map((e) => e.y),
+    ];
 
-    return SizedBox(
-      height: 300,
-      child: LineChart(
-        LineChartData(
-          minX: 0,
-          maxX: (data.length - 1).toDouble(),
-          minY: 0,
-          maxY: maxValue,
-          lineBarsData: [
-            LineChartBarData(
-              spots: sesiones,
-              isCurved: false,
-              barWidth: 3,
-              color: Colors.blueGrey.shade600,
-              dotData: FlDotData(show: true),
-            ),
-            LineChartBarData(
-              spots: duracion,
-              isCurved: false,
-              barWidth: 3,
-              color: AppColors.primary,
-              dotData: FlDotData(show: true),
-            ),
-            LineChartBarData(
-              spots: mensajes,
-              isCurved: false,
-              barWidth: 3,
-              color: Colors.red.shade400,
-              dotData: FlDotData(show: true),
-            ),
-          ],
-          gridData: FlGridData(
-            show: true,
-            getDrawingHorizontalLine: (_) =>
-                FlLine(color: Colors.grey.shade300, strokeWidth: 1),
-            drawVerticalLine: false,
-          ),
-          borderData: FlBorderData(show: false),
-          titlesData: FlTitlesData(
-            bottomTitles: AxisTitles(
-              sideTitles: SideTitles(
-                showTitles: true,
-                interval: 1,
-                getTitlesWidget: (v, _) => Text(
-                  "Semana ${v.toInt() + 1}",
-                  style: GoogleFonts.manrope(),
+    final maxDataValue = valoresY.reduce((a, b) => a > b ? a : b);
+    final roundedMaxY =
+        (((maxDataValue <= 0 ? 10 : maxDataValue) / 5).ceil() * 5).toDouble();
+    final maxY = roundedMaxY < 10 ? 10.0 : roundedMaxY;
+
+    return Column(
+      children: [
+        SizedBox(
+          height: 300,
+          child: Padding(
+            padding: const EdgeInsets.only(right: 8, top: 8),
+            child: LineChart(
+              LineChartData(
+                minX: -0.2,
+                maxX: data.length == 1
+                    ? 1.2
+                    : (data.length - 1).toDouble() + 0.1,
+                minY: 0,
+                maxY: maxY,
+                clipData: const FlClipData.none(),
+                lineTouchData: LineTouchData(
+                  enabled: true,
+                  touchTooltipData: LineTouchTooltipData(
+                    getTooltipColor: (_) =>
+                        AppColors.primary.withValues(alpha: 0.95),
+                    tooltipRoundedRadius: 8,
+                    tooltipPadding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 8,
+                    ),
+                    getTooltipItems: (spots) {
+                      return spots.map((spot) {
+                        String label;
+
+                        if (spot.barIndex == 0) {
+                          label = "Sesiones";
+                        } else if (spot.barIndex == 1) {
+                          label = "Duración";
+                        } else {
+                          label = "Mensajes";
+                        }
+
+                        return LineTooltipItem(
+                          "$label: ${spot.y.toStringAsFixed(1)}",
+                          GoogleFonts.manrope(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        );
+                      }).toList();
+                    },
+                  ),
+                ),
+
+                lineBarsData: [
+                  LineChartBarData(
+                    spots: sesiones,
+                    isCurved: false,
+                    barWidth: 3,
+                    color: Colors.blueGrey.shade600,
+                    dotData: const FlDotData(show: true),
+                  ),
+                  LineChartBarData(
+                    spots: duracion,
+                    isCurved: false,
+                    barWidth: 3,
+                    color: AppColors.secondaryDarkText,
+                    dotData: const FlDotData(show: true),
+                  ),
+                  LineChartBarData(
+                    spots: mensajes,
+                    isCurved: false,
+                    barWidth: 3,
+                    color: AppColors.rojo,
+                    dotData: const FlDotData(show: true),
+                  ),
+                ],
+
+                gridData: FlGridData(
+                  show: true,
+                  drawVerticalLine: false,
+                  horizontalInterval: 5,
+                  getDrawingHorizontalLine: (_) => FlLine(
+                    color: Colors.grey.withValues(alpha: 0.18),
+                    strokeWidth: 1,
+                  ),
+                ),
+
+                // Ejes visibles: izquierda y abajo
+                borderData: FlBorderData(
+                  show: true,
+                  border: Border(
+                    left: BorderSide(
+                      color: Colors.grey.withValues(alpha: 0.45),
+                      width: 1,
+                    ),
+                    bottom: BorderSide(
+                      color: Colors.grey.withValues(alpha: 0.45),
+                      width: 1,
+                    ),
+                  ),
+                ),
+
+                titlesData: FlTitlesData(
+                  topTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                  rightTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      interval: 1,
+                      reservedSize: 30,
+                      getTitlesWidget: (v, meta) {
+                        final index = v.round();
+
+                        // Evita que valores decimales como -0.2, 0.8, 1.8
+                        // se conviertan en S1, S2, etc.
+                        if ((v - index).abs() > 0.001) {
+                          return const SizedBox.shrink();
+                        }
+
+                        if (index < 0 || index >= data.length) {
+                          return const SizedBox.shrink();
+                        }
+
+                        return SideTitleWidget(
+                          axisSide: meta.axisSide,
+                          space: 6,
+                          child: Text(
+                            "S${index + 1}",
+                            style: GoogleFonts.manrope(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black54,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+
+                  leftTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      interval: 5,
+                      reservedSize: 32,
+                      getTitlesWidget: (v, meta) {
+                        if (v < 0 || v > maxY || (v % 5).abs() > 0.001) {
+                          return const SizedBox.shrink();
+                        }
+
+                        return SideTitleWidget(
+                          axisSide: meta.axisSide,
+                          space: 6,
+                          child: Text(
+                            v.toInt().toString(),
+                            style: GoogleFonts.manrope(
+                              fontSize: 11,
+                              color: Colors.black54,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
                 ),
               ),
             ),
-            leftTitles: AxisTitles(
-              sideTitles: SideTitles(showTitles: true, interval: 5),
-            ),
           ),
         ),
-      ),
+
+        const SizedBox(height: 12),
+
+        Wrap(
+          spacing: 12,
+          runSpacing: 8,
+          children: [
+            _legendItem("Sesiones", Colors.blueGrey.shade600),
+            _legendItem("Duración (min)", AppColors.secondaryDarkText),
+            _legendItem("Mensajes", AppColors.rojo),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _legendItem(String label, Color color) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 6),
+        Text(
+          label,
+          style: GoogleFonts.manrope(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: AppColors.subtitleLight,
+          ),
+        ),
+      ],
     );
   }
 
@@ -450,11 +607,16 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
   //                      CA3 – PHQ PROMEDIO
   // ===========================================================
   Widget phqChart(PhqPromedio d) {
-    final maxY =
-        (d.promedioBefore > d.promedioAfter
-            ? d.promedioBefore
-            : d.promedioAfter) *
-        1.2;
+    final maxScore = d.promedioBefore > d.promedioAfter
+        ? d.promedioBefore
+        : d.promedioAfter;
+    final roundedMaxY = (((maxScore <= 0 ? 20 : maxScore) / 5).ceil() * 5)
+        .toDouble();
+    final maxY = roundedMaxY < 20 ? 20.0 : roundedMaxY;
+    final valores = [
+      ("Antes", d.promedioBefore, AppColors.azulClaro),
+      ("Después", d.promedioAfter, AppColors.gris),
+    ];
 
     return SizedBox(
       height: 240,
@@ -462,39 +624,109 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
         BarChartData(
           maxY: maxY,
           minY: 0,
-          barGroups: [
-            BarChartGroupData(
-              x: 0,
+          barTouchData: BarTouchData(
+            touchTooltipData: BarTouchTooltipData(
+              getTooltipColor: (_) => AppColors.primary.withValues(alpha: 0.95),
+              tooltipRoundedRadius: 8,
+              tooltipPadding: const EdgeInsets.symmetric(
+                horizontal: 10,
+                vertical: 8,
+              ),
+              getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                if (group.x < 0 || group.x >= valores.length) {
+                  return null;
+                }
+
+                return BarTooltipItem(
+                  "${valores[group.x].$1}: ${rod.toY.toStringAsFixed(1)}",
+                  GoogleFonts.manrope(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                );
+              },
+            ),
+          ),
+          barGroups: List.generate(valores.length, (i) {
+            return BarChartGroupData(
+              x: i,
               barRods: [
                 BarChartRodData(
-                  toY: d.promedioBefore,
+                  toY: valores[i].$2,
                   width: 38,
-                  color: AppColors.azulClaro,
+                  color: valores[i].$3,
                   borderRadius: BorderRadius.circular(4),
                 ),
               ],
-            ),
-            BarChartGroupData(
-              x: 1,
-              barRods: [
-                BarChartRodData(
-                  toY: d.promedioAfter,
-                  width: 38,
-                  color: AppColors.gris,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-              ],
-            ),
-          ],
+            );
+          }),
           titlesData: FlTitlesData(
+            topTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false),
+            ),
+            rightTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false),
+            ),
             bottomTitles: AxisTitles(
               sideTitles: SideTitles(
                 showTitles: true,
-                getTitlesWidget: (v, _) => Text(v == 0 ? "Antes" : "Después"),
+                reservedSize: 34,
+                getTitlesWidget: (v, meta) {
+                  final index = v.toInt();
+                  if (index < 0 || index >= valores.length) {
+                    return const SizedBox.shrink();
+                  }
+
+                  return SideTitleWidget(
+                    axisSide: meta.axisSide,
+                    space: 8,
+                    child: Text(
+                      valores[index].$1,
+                      style: GoogleFonts.manrope(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            leftTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                interval: 5,
+                reservedSize: 32,
+                getTitlesWidget: (v, meta) {
+                  if (v < 0 || v > maxY || (v % 5).abs() > 0.001) {
+                    return const SizedBox.shrink();
+                  }
+
+                  return SideTitleWidget(
+                    axisSide: meta.axisSide,
+                    space: 8,
+                    child: Text(
+                      v.toInt().toString(),
+                      style: GoogleFonts.manrope(
+                        fontSize: 11,
+                        color: Colors.black54,
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
           ),
-          gridData: FlGridData(show: true),
+          gridData: FlGridData(
+            show: true,
+            drawVerticalLine: false,
+            horizontalInterval: 5,
+            getDrawingHorizontalLine: (_) => FlLine(
+              color: Colors.grey.withValues(alpha: 0.18),
+              strokeWidth: 1,
+            ),
+          ),
           borderData: FlBorderData(show: false),
         ),
       ),
@@ -541,6 +773,30 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
         BarChartData(
           maxY: 100,
           minY: 0,
+          barTouchData: BarTouchData(
+            touchTooltipData: BarTouchTooltipData(
+              getTooltipColor: (_) => AppColors.primary.withValues(alpha: 0.95),
+              tooltipRoundedRadius: 8,
+              tooltipPadding: const EdgeInsets.symmetric(
+                horizontal: 10,
+                vertical: 8,
+              ),
+              getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                if (group.x < 0 || group.x >= valores.length) {
+                  return null;
+                }
+
+                return BarTooltipItem(
+                  "${valores[group.x].$1}\n${rod.toY.toStringAsFixed(1)}%",
+                  GoogleFonts.manrope(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                );
+              },
+            ),
+          ),
           barGroups: List.generate(valores.length, (i) {
             return BarChartGroupData(
               x: i,
@@ -548,28 +804,79 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
                 BarChartRodData(
                   toY: valores[i].$2,
                   width: 40,
-                  color: AppColors.primary.withOpacity(0.8),
+                  color: AppColors.primary.withValues(alpha: 0.8),
                   borderRadius: BorderRadius.circular(6),
                 ),
               ],
             );
           }),
           titlesData: FlTitlesData(
+            topTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false),
+            ),
+            rightTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false),
+            ),
             bottomTitles: AxisTitles(
               sideTitles: SideTitles(
                 showTitles: true,
-                getTitlesWidget: (v, _) => Text(
-                  valores[v.toInt()].$1,
-                  style: GoogleFonts.manrope(fontSize: 12),
-                ),
+                reservedSize: 34,
+                getTitlesWidget: (v, meta) {
+                  final index = v.toInt();
+                  if (index < 0 || index >= valores.length) {
+                    return const SizedBox.shrink();
+                  }
+
+                  return SideTitleWidget(
+                    axisSide: meta.axisSide,
+                    space: 8,
+                    child: Text(
+                      valores[index].$1,
+                      style: GoogleFonts.manrope(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87,
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
             leftTitles: AxisTitles(
-              sideTitles: SideTitles(showTitles: true, interval: 20),
+              sideTitles: SideTitles(
+                showTitles: true,
+                interval: 20,
+                reservedSize: 42,
+                getTitlesWidget: (v, meta) {
+                  if (v < 0 || v > 100 || v % 20 != 0) {
+                    return const SizedBox.shrink();
+                  }
+
+                  return SideTitleWidget(
+                    axisSide: meta.axisSide,
+                    space: 8,
+                    child: Text(
+                      "${v.toInt()}%",
+                      style: GoogleFonts.manrope(
+                        fontSize: 11,
+                        color: Colors.black54,
+                      ),
+                    ),
+                  );
+                },
+              ),
             ),
           ),
           borderData: FlBorderData(show: false),
-          gridData: FlGridData(show: true),
+          gridData: FlGridData(
+            show: true,
+            drawVerticalLine: false,
+            horizontalInterval: 20,
+            getDrawingHorizontalLine: (_) => FlLine(
+              color: Colors.grey.withValues(alpha: 0.18),
+              strokeWidth: 1,
+            ),
+          ),
         ),
       ),
     );
