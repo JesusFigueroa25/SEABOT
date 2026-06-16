@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:seabot/core/app_colors.dart';
 import 'package:seabot/core/app_data.dart';
 import 'package:seabot/screens/home_screen.dart';
+import 'package:seabot/screens/widgets/seabot_widgets.dart';
 import 'package:seabot/services/phq_result_service.dart';
 import 'dart:io';
 import 'package:connectivity_plus/connectivity_plus.dart';
@@ -625,103 +626,73 @@ class _TestPHQ9ScreenState extends State<TestPHQ9Screen> {
                   ),
                 ),
                 const SizedBox(height: 26),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton.icon(
-                    onPressed: () {
-                      showDialog(
-                        context: context,
-                        builder: (_) => AlertDialog(
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(22),
-                          ),
-                          title: Text(
-                            "¿Qué es el PHQ-9?",
-                            style: GoogleFonts.manrope(
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                          content: Text(
-                            "El PHQ-9 (Patient Health Questionnaire-9) es un cuestionario clínicamente validado utilizado para evaluar síntomas depresivos durante las últimas dos semanas. Sus resultados sirven como orientación inicial.",
-                            style: GoogleFonts.manrope(height: 1.55),
-                          ),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(context),
-                              child: Text(
-                                "Entendido",
-                                style: GoogleFonts.manrope(
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ),
-                          ],
+                SeaBotSecondaryButton(
+                  label: "¿Qué es el test PHQ-9?",
+                  icon: Icons.info_outline_rounded,
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      builder: (_) => AlertDialog(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(22),
                         ),
-                      );
-                    },
-                    icon: const Icon(Icons.info_outline_rounded),
-                    label: Text(
-                      "¿Qué es el test PHQ-9?",
-                      style: GoogleFonts.manrope(fontWeight: FontWeight.w800),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.primary,
-                      side: BorderSide(
-                        color: AppColors.primary.withOpacity(0.35),
-                      ),
-                      minimumSize: const Size(double.infinity, 54),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 14),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton.icon(
-                    onPressed: () async {
-                      final online = await _hasInternet();
-
-                      if (!online) {
-                        if (!mounted) return;
-
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              "Sin conexión a internet",
+                        title: Text(
+                          "¿Qué es el PHQ-9?",
+                          style: GoogleFonts.manrope(
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        content: Text(
+                          "El PHQ-9 (Patient Health Questionnaire-9) es un cuestionario clínicamente validado utilizado para evaluar síntomas depresivos durante las últimas dos semanas. Sus resultados sirven como orientación inicial.",
+                          style: GoogleFonts.manrope(height: 1.55),
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: Text(
+                              "Entendido",
                               style: GoogleFonts.manrope(
-                                color: Colors.white,
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
-                            backgroundColor: Colors.redAccent,
-                            behavior: SnackBarBehavior.floating,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 14),
+                SeaBotPrimaryButton(
+                  label: "Iniciar test",
+                  icon: Icons.play_arrow_rounded,
+                  onPressed: () async {
+                    final online = await _hasInternet();
+
+                    if (!online) {
+                      if (!mounted) return;
+
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            "Sin conexión a internet",
+                            style: GoogleFonts.manrope(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
-                        );
-                        return;
-                      }
+                          backgroundColor: Colors.redAccent,
+                          behavior: SnackBarBehavior.floating,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                      );
+                      return;
+                    }
 
-                      if (!mounted) return;
-                      setState(() => _showIntro = false);
-                    },
-                    icon: const Icon(Icons.play_arrow_rounded),
-                    label: Text(
-                      "Iniciar test",
-                      style: GoogleFonts.manrope(fontWeight: FontWeight.w800),
-                    ),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: AppColors.secundaryStart,
-                      foregroundColor: Colors.white,
-                      minimumSize: const Size(double.infinity, 54),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                    ),
-                  ),
+                    if (!mounted) return;
+                    setState(() => _showIntro = false);
+                  },
                 ),
               ],
             ),

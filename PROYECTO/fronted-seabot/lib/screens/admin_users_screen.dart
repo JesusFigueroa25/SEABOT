@@ -4,6 +4,7 @@ import 'package:seabot/core/app_colors.dart';
 import 'package:seabot/core/responsive_helper.dart';
 import 'package:seabot/models/student.dart';
 import 'package:seabot/models/user.dart';
+import 'package:seabot/screens/widgets/seabot_widgets.dart';
 import 'package:seabot/services/user_service.dart';
 
 class AdminUsersScreen extends StatefulWidget {
@@ -475,21 +476,25 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
           future: resultados,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
+              return const SeaBotLoadingState(text: "Cargando usuarios...");
             }
 
             if (snapshot.hasError) {
-              return _buildConnectionError();
+              return const Center(
+                child: SeaBotEmptyState(
+                  icon: Icons.wifi_off_rounded,
+                  message: "Sin conexión a internet",
+                  subMessage: "Por favor, verifica tu conexión.",
+                ),
+              );
             }
 
             if (!snapshot.hasData || snapshot.data!.isEmpty) {
-              return Center(
-                child: Text(
-                  "No hay datos disponibles.",
-                  style: GoogleFonts.manrope(
-                    fontSize: 18,
-                    color: Colors.redAccent,
-                  ),
+              return const Center(
+                child: SeaBotEmptyState(
+                  icon: Icons.people_outline_rounded,
+                  message: "No hay datos disponibles.",
+                  subMessage: "No se encontraron alumnos registrados.",
                 ),
               );
             }

@@ -11,6 +11,7 @@ import 'package:seabot/repositories/student_repository.dart';
 import 'package:seabot/services/student_service.dart';
 import 'package:provider/provider.dart';
 import 'package:seabot/theme/theme_notifier.dart';
+import 'package:seabot/screens/widgets/seabot_widgets.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:seabot/core/responsive_helper.dart';
@@ -864,29 +865,10 @@ class _ProfileScreenState extends State<ProfileScreen>
               child: SafeArea(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: SizedBox(
-                    width: double.infinity,
-                    height: 56,
-                    child: FilledButton.icon(
-                      onPressed: _onSavePressed,
-                      icon: const Icon(Icons.save_rounded),
-                      label: Text(
-                        "Guardar cambios",
-                        style: GoogleFonts.manrope(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: AppColors.secundary,
-                        foregroundColor: Colors.white,
-                        elevation: 10,
-                        shadowColor: AppColors.secundary.withOpacity(0.35),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(18),
-                        ),
-                      ),
-                    ),
+                  child: SeaBotPrimaryButton(
+                    label: "Guardar cambios",
+                    icon: Icons.save_rounded,
+                    onPressed: _onSavePressed,
                   ),
                 ),
               ),

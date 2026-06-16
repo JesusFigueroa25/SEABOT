@@ -331,8 +331,8 @@ class _EmotionalQuickLogScreenState extends State<EmotionalQuickLogScreen> {
               child: Column(
                 children: [
                   _buildHeaderPremium(
-                    title: "Registro Emocional Rapido",
-                    subtitle: "Registra como te sientes en este momento",
+                    title: "Registro Emocional Rápido",
+                    subtitle: "Registra cómo te sientes en este momento",
                   ),
                   Expanded(
                     child: ResponsiveHelper.centeredConstraint(

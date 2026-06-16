@@ -21,6 +21,7 @@ import 'package:seabot/screens/TestPHQ9Screen.dart';
 import 'package:seabot/screens/conversations_screen.dart';
 import 'package:seabot/screens/resourceshealthy.dart';
 import 'package:seabot/services/phq_result_service.dart';
+import 'package:seabot/screens/widgets/seabot_widgets.dart';
 
 class Home extends StatefulWidget {
   const Home({super.key});
@@ -849,14 +850,7 @@ class _HomeState extends State<Home> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          "Herramientas de bienestar",
-          style: GoogleFonts.manrope(
-            fontSize: 21,
-            fontWeight: FontWeight.w800,
-            color: isDark ? Colors.white : const Color(0xFF151922),
-          ),
-        ),
+        const SeaBotSectionTitle(title: "Herramientas de bienestar"),
         const SizedBox(height: 6),
         Text(
           "Accesos rápidos para cuidarte mejor cada día",
@@ -945,14 +939,7 @@ class _HomeState extends State<Home> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          "Hábitos de bienestar",
-          style: GoogleFonts.manrope(
-            fontSize: 21,
-            fontWeight: FontWeight.w800,
-            color: isDark ? Colors.white : const Color(0xFF151922),
-          ),
-        ),
+        const SeaBotSectionTitle(title: "Hábitos de bienestar"),
         const SizedBox(height: 6),
         Text(
           _dailyHabits.isEmpty
@@ -1087,27 +1074,10 @@ class _HomeState extends State<Home> {
     EdgeInsetsGeometry padding = const EdgeInsets.all(16),
     double radius = 22,
   }) {
-    return Container(
-      width: double.infinity,
+    return SeaBotCard(
+      borderRadius: radius,
       padding: padding,
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF171C24) : Colors.white,
-        borderRadius: BorderRadius.circular(radius),
-        border: Border.all(
-          color: isDark
-              ? Colors.white.withOpacity(0.06)
-              : const Color(0xFFE8EDF5),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: isDark
-                ? Colors.black.withOpacity(0.18)
-                : const Color(0x0D10233F),
-            blurRadius: 24,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
+      color: isDark ? const Color(0xFF171C24) : Colors.white,
       child: child,
     );
   }

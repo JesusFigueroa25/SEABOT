@@ -8,6 +8,7 @@ import 'package:seabot/core/app_colors.dart';
 import 'package:seabot/core/responsive_helper.dart';
 import 'package:seabot/models/message.dart';
 import 'package:seabot/repositories/messages_repository.dart';
+import 'package:seabot/screens/widgets/seabot_widgets.dart';
 import 'package:seabot/services/message_service.dart';
 import 'dart:async';
 
@@ -141,32 +142,6 @@ class _ChatScreenState extends State<ChatScreen> {
   Future<void> _onSendPressed() async {
     if (_sendingMessage) return;
 
-    final connected = await _hasInternet();
-    if (!connected) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            "📵 No tienes conexión a internet",
-            style: GoogleFonts.manrope(
-              color: Colors.white,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          backgroundColor: Colors.redAccent,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-          ),
-        ),
-      );
-      return;
-    }
-
-    await _sendMessage();
-  }
-
-  Future<void> _sendMessage() async {
     final text = _controller.text.trim();
 
     if (text.isEmpty) {
@@ -209,16 +184,8 @@ class _ChatScreenState extends State<ChatScreen> {
       return;
     }
 
+    // 1. Mostrar el mensaje del usuario inmediatamente y limpiar el input al instante
     final ahora = DateTime.now().toUtc();
-    final inputResponse = {
-      "role": "user",
-      "content": text,
-      "conversation_id": widget.conversationId,
-      "openai_id": widget.openaiId,
-      "fecha_hora": ahora.toIso8601String(),
-      "response_id": "",
-    };
-
     final tempUserId = DateTime.now().millisecondsSinceEpoch * -1;
     final localMessage = Message(
       id: tempUserId,
@@ -235,10 +202,68 @@ class _ChatScreenState extends State<ChatScreen> {
       _botTyping = true;
       _loadingInitialMessages = false;
     });
-    await repository.saveLocalMessage(localMessage);
-    await repository.markConversationPending(widget.conversationId, true);
 
     _scrollToBottom(animated: true);
+
+    // 2. Verificar internet de forma no bloqueante antes de enviar al API
+    final connected = await _hasInternet();
+    if (!connected) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            "📵 No tienes conexión a internet",
+            style: GoogleFonts.manrope(
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+        ),
+      );
+
+      // Revertir el mensaje local no enviado, restaurar el texto en el input y liberar
+      setState(() {
+        _localMessages.removeWhere((m) => m.id == tempUserId);
+        _sendingMessage = false;
+        _botTyping = false;
+        _controller.text = text;
+      });
+      return;
+    }
+
+    // 3. Continuar con el envío al servidor
+    await _sendMessage(text, tempUserId, ahora);
+  }
+
+  Future<void> _sendMessage(String text, int tempUserId, DateTime ahora) async {
+    final inputResponse = {
+      "role": "user",
+      "content": text,
+      "conversation_id": widget.conversationId,
+      "openai_id": widget.openaiId,
+      "fecha_hora": ahora.toIso8601String(),
+      "response_id": "",
+    };
+
+    try {
+      await repository.saveLocalMessage(
+        Message(
+          id: tempUserId,
+          role: "user",
+          content: text,
+          fechaHora: ahora,
+          conversationID: widget.conversationId,
+        ),
+      );
+      await repository.markConversationPending(widget.conversationId, true);
+    } catch (e) {
+      print("Error al guardar mensaje local: $e");
+    }
 
     int? tempBotId;
     DateTime? botMessageDate;
@@ -315,28 +340,29 @@ class _ChatScreenState extends State<ChatScreen> {
 
       flushStreamedText(force: true);
 
-      await Future.delayed(const Duration(milliseconds: 300));
+      // Liberar _sendingMessage apenas termine la respuesta visible del bot
+      if (mounted) {
+        setState(() {
+          _sendingMessage = false;
+          _botTyping = false;
+          _loadingInitialMessages = false;
+        });
+        _scrollToBottom(animated: true);
+      }
 
-      final syncedMessages = await repository.fetchAndSyncMessages(
-        widget.conversationId,
-        true,
-      );
+      // Ejecutar repository.fetchAndSyncMessages(...) en background sin bloquear la UI
+      repository.fetchAndSyncMessages(widget.conversationId, true).then((syncedMessages) {
+        if (!mounted) return;
+        setState(() {
+          resultados = Future.value(syncedMessages);
+          _localMessages.removeWhere((m) => m.id == tempUserId || m.id == tempBotId);
+        });
+      }).catchError((e) {
+        print("Error al sincronizar mensajes: $e");
+      });
 
       await repository.markConversationPending(widget.conversationId, false);
 
-      if (!mounted) return;
-
-      setState(() {
-        resultados = Future.value(syncedMessages);
-        _localMessages.clear();
-        _sendingMessage = false;
-        _botTyping = false;
-        _loadingInitialMessages = false;
-      });
-
-      if (mounted) {
-        _scrollToBottom(animated: true);
-      }
     } catch (e) {
       await repository.markConversationPending(widget.conversationId, false);
 
@@ -344,10 +370,13 @@ class _ChatScreenState extends State<ChatScreen> {
 
       setState(() {
         _botTyping = false;
+        _sendingMessage = false;
         if (tempBotId != null) {
           _removeEmptyLocalMessage(tempBotId!);
         }
+        _localMessages.removeWhere((m) => m.id == tempUserId || (tempBotId != null && m.id == tempBotId));
         _loadingInitialMessages = false;
+        _controller.text = text; // Restaurar el texto original en caso de error
       });
 
       final errorText = e.toString().toLowerCase();
@@ -383,10 +412,6 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
         ),
       );
-    } finally {
-      if (mounted) {
-        setState(() => _sendingMessage = false);
-      }
     }
   }
 
@@ -735,13 +760,46 @@ class _ChatScreenState extends State<ChatScreen> {
                           itemCount: totalCount,
                           itemBuilder: (context, index) {
                             if (_botTyping && index == allMessages.length) {
-                              return Align(
-                                alignment: Alignment.centerLeft,
-                                child: Container(
-                                  margin: const EdgeInsets.symmetric(
-                                    vertical: 6,
-                                  ),
-                                  child: _buildTypingBubble(botBubble, isDark),
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 3),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.start,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Container(
+                                      width: 30,
+                                      height: 30,
+                                      margin: const EdgeInsets.only(top: 4, right: 2),
+                                      padding: const EdgeInsets.all(4),
+                                      decoration: BoxDecoration(
+                                        color: isDark ? const Color(0xFF1E2430) : Colors.white,
+                                        shape: BoxShape.circle,
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black.withOpacity(0.05),
+                                            blurRadius: 4,
+                                            offset: const Offset(0, 2),
+                                          ),
+                                        ],
+                                        border: Border.all(
+                                          color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05),
+                                        ),
+                                      ),
+                                      child: ClipOval(
+                                        child: Image.asset(
+                                          "assets/images/SeaBot.png",
+                                          fit: BoxFit.contain,
+                                          errorBuilder: (_, __, ___) => const Icon(
+                                            Icons.face_retouching_natural_rounded,
+                                            size: 16,
+                                            color: AppColors.secundary,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    _buildTypingBubble(botBubble, isDark),
+                                  ],
                                 ),
                               );
                             }
@@ -763,63 +821,117 @@ class _ChatScreenState extends State<ChatScreen> {
                             return GestureDetector(
                               onLongPress: () async =>
                                   await _copyMessage(message.content),
-                              child: Align(
-                                alignment: isUser
-                                    ? Alignment.centerRight
-                                    : Alignment.centerLeft,
-                                child: ConstrainedBox(
-                                  constraints: BoxConstraints(
-                                    maxWidth: bubbleMaxWidth,
-                                  ),
-                                  child: Container(
-                                    margin: const EdgeInsets.symmetric(
-                                      vertical: 6,
-                                    ),
-                                    padding: const EdgeInsets.fromLTRB(
-                                      14,
-                                      14,
-                                      14,
-                                      10,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: bubbleColor,
-                                      borderRadius: BorderRadius.only(
-                                        topLeft: const Radius.circular(24),
-                                        topRight: const Radius.circular(24),
-                                        bottomLeft: isUser
-                                            ? const Radius.circular(24)
-                                            : const Radius.circular(8),
-                                        bottomRight: isUser
-                                            ? const Radius.circular(8)
-                                            : const Radius.circular(24),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 3),
+                                child: Row(
+                                  mainAxisAlignment: isUser
+                                      ? MainAxisAlignment.end
+                                      : MainAxisAlignment.start,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    if (!isUser) ...[
+                                      Container(
+                                        width: 30,
+                                        height: 30,
+                                        margin: const EdgeInsets.only(top: 4, right: 2),
+                                        padding: const EdgeInsets.all(4),
+                                        decoration: BoxDecoration(
+                                          color: isDark ? const Color(0xFF1E2430) : Colors.white,
+                                          shape: BoxShape.circle,
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Colors.black.withOpacity(0.05),
+                                              blurRadius: 4,
+                                              offset: const Offset(0, 2),
+                                            ),
+                                          ],
+                                          border: Border.all(
+                                            color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05),
+                                          ),
+                                        ),
+                                        child: ClipOval(
+                                          child: Image.asset(
+                                            "assets/images/SeaBot.png",
+                                            fit: BoxFit.contain,
+                                            errorBuilder: (_, __, ___) => const Icon(
+                                              Icons.face_retouching_natural_rounded,
+                                              size: 16,
+                                              color: AppColors.secundary,
+                                            ),
+                                          ),
+                                        ),
                                       ),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.black.withOpacity(
-                                            isDark ? 0.18 : 0.06,
-                                          ),
-                                          blurRadius: 12,
-                                          offset: const Offset(0, 6),
+                                      const SizedBox(width: 6),
+                                    ],
+                                    ConstrainedBox(
+                                      constraints: BoxConstraints(
+                                        maxWidth: bubbleMaxWidth,
+                                      ),
+                                      child: Container(
+                                        padding: const EdgeInsets.fromLTRB(
+                                          16,
+                                          14,
+                                          16,
+                                          10,
                                         ),
-                                      ],
-                                    ),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          message.content,
-                                          style: GoogleFonts.manrope(
-                                            color: textColor,
-                                            fontSize: 15.6,
-                                            height: 1.5,
-                                            fontWeight: FontWeight.w500,
+                                        decoration: BoxDecoration(
+                                          color: bubbleColor,
+                                          borderRadius: BorderRadius.only(
+                                            topLeft: const Radius.circular(22),
+                                            topRight: const Radius.circular(22),
+                                            bottomLeft: isUser
+                                                ? const Radius.circular(22)
+                                                : const Radius.circular(6),
+                                            bottomRight: isUser
+                                                ? const Radius.circular(6)
+                                                : const Radius.circular(22),
                                           ),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Colors.black.withOpacity(
+                                                isDark ? 0.14 : 0.04,
+                                              ),
+                                              blurRadius: 10,
+                                              offset: const Offset(0, 4),
+                                            ),
+                                          ],
                                         ),
-                                        const SizedBox(height: 8),
-                                      ],
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Text(
+                                              message.content,
+                                              style: GoogleFonts.manrope(
+                                                color: textColor,
+                                                fontSize: 15.2,
+                                                height: 1.45,
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Align(
+                                              alignment: Alignment.bottomRight,
+                                              child: Text(
+                                                // ignore: unnecessary_null_comparison, dead_code
+                                                message.fechaHora != null
+                                                    ? "${message.fechaHora.toLocal().hour.toString().padLeft(2, '0')}:${message.fechaHora.toLocal().minute.toString().padLeft(2, '0')}"
+                                                    : "${DateTime.now().hour.toString().padLeft(2, '0')}:${DateTime.now().minute.toString().padLeft(2, '0')}",
+                                                style: GoogleFonts.manrope(
+                                                  fontSize: 10.5,
+                                                  color: isUser
+                                                      ? Colors.black54
+                                                      : (isDark ? Colors.white38 : Colors.black38),
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
                                     ),
-                                  ),
+                                  ],
                                 ),
                               ),
                             );
@@ -880,7 +992,8 @@ class _ChatScreenState extends State<ChatScreen> {
                                     controller: _controller,
                                     focusNode: _inputFocusNode,
                                     maxLength: maxChars,
-                                    maxLines: null,
+                                    minLines: 1,
+                                    maxLines: 5,
                                     keyboardType: TextInputType.multiline,
                                     style: GoogleFonts.manrope(
                                       color: inputTextColor,
@@ -1109,64 +1222,12 @@ class _ChatScreenState extends State<ChatScreen> {
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24),
-        child: Container(
-          width: double.infinity,
+        child: SeaBotCard(
           padding: const EdgeInsets.all(28),
-          decoration: BoxDecoration(
-            color: isDark
-                ? const Color(0xFF171C24)
-                : Colors.white.withOpacity(0.95),
-            borderRadius: BorderRadius.circular(28),
-            border: Border.all(
-              color: isDark
-                  ? Colors.white.withOpacity(0.04)
-                  : Colors.black.withOpacity(0.04),
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(isDark ? 0.20 : 0.06),
-                blurRadius: 22,
-                offset: const Offset(0, 12),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 76,
-                height: 76,
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.12),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.chat_bubble_outline_rounded,
-                  color: AppColors.primary,
-                  size: 36,
-                ),
-              ),
-              const SizedBox(height: 18),
-              Text(
-                "Empieza una conversación",
-                textAlign: TextAlign.center,
-                style: GoogleFonts.manrope(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                  color: isDark ? Colors.white : const Color(0xFF18202A),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                "Escribe tu primer mensaje y SeaBot te responderá aquí.",
-                textAlign: TextAlign.center,
-                style: GoogleFonts.manrope(
-                  fontSize: 14,
-                  height: 1.5,
-                  color: isDark ? Colors.white70 : Colors.black54,
-                ),
-              ),
-            ],
+          child: const SeaBotEmptyState(
+            icon: Icons.chat_bubble_outline_rounded,
+            message: "Empieza una conversación",
+            subMessage: "Escribe tu primer mensaje y SeaBot te responderá aquí.",
           ),
         ),
       ),
