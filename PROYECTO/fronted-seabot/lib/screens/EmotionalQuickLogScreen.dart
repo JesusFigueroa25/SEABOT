@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:seabot/core/app_colors.dart';
 import 'package:seabot/core/app_data.dart';
+import 'package:seabot/core/responsive_helper.dart';
 import 'package:seabot/models/emotional_register.dart';
 import 'package:seabot/repositories/emotional_registers_repository.dart';
 import 'package:seabot/services/emotional_register_service.dart';
@@ -334,8 +335,11 @@ class _EmotionalQuickLogScreenState extends State<EmotionalQuickLogScreen> {
                     subtitle: "Registra como te sientes en este momento",
                   ),
                   Expanded(
-                    child: Column(
-                      children: [
+                    child: ResponsiveHelper.centeredConstraint(
+                      context: context,
+                      maxTabletWidth: 600,
+                      child: Column(
+                        children: [
                         Expanded(
                           flex: 4,
                           child: SingleChildScrollView(
@@ -663,6 +667,7 @@ class _EmotionalQuickLogScreenState extends State<EmotionalQuickLogScreen> {
                         //  ),
                         //),
                       ],
+                    ),
                     ),
                   ),
                 ],
@@ -1085,8 +1090,11 @@ class _EmotionalQuickLogScreenState extends State<EmotionalQuickLogScreen> {
           ),
         ],
       ),
-      child: Stack(
-        children: [
+      child: ResponsiveHelper.centeredConstraint(
+        context: context,
+        maxTabletWidth: 600,
+        child: Stack(
+          children: [
           // 🔹 decoración
           Positioned(
             right: -18,
@@ -1180,6 +1188,7 @@ class _EmotionalQuickLogScreenState extends State<EmotionalQuickLogScreen> {
             ],
           ),
         ],
+      ),
       ),
     );
   }

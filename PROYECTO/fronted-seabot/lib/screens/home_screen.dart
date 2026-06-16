@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:seabot/core/app_colors.dart';
 import 'package:seabot/core/app_data.dart';
+import 'package:seabot/core/responsive_helper.dart';
 import 'package:seabot/models/habit.dart';
 import 'package:seabot/repositories/habits_repository.dart';
 import 'package:seabot/repositories/student_repository.dart';
@@ -553,7 +554,11 @@ class _HomeState extends State<Home> {
                 _buildBigMotivationalCard(),
             ],
           ),
-          bottomNavigationBar: _buildCustomNavBar(isDark),
+          bottomNavigationBar: ResponsiveHelper.centeredConstraint(
+            context: context,
+            maxTabletWidth: 600,
+            child: _buildCustomNavBar(isDark),
+          ),
         ),
       ),
     );
@@ -571,15 +576,19 @@ class _HomeState extends State<Home> {
                 offset: const Offset(0, -22),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 18),
-                  child: Column(
-                    children: [
-                      _buildQuickStatusCard(isDark),
-                      const SizedBox(height: 18),
-                      _buildToolsSection(theme, isDark),
-                      const SizedBox(height: 22),
-                      _buildHabitsSection(isDark),
-                      const SizedBox(height: 24),
-                    ],
+                  child: ResponsiveHelper.centeredConstraint(
+                    context: context,
+                    maxTabletWidth: 800,
+                    child: Column(
+                      children: [
+                        _buildQuickStatusCard(isDark),
+                        const SizedBox(height: 18),
+                        _buildToolsSection(theme, isDark),
+                        const SizedBox(height: 22),
+                        _buildHabitsSection(isDark),
+                        const SizedBox(height: 24),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -606,9 +615,12 @@ class _HomeState extends State<Home> {
         ),
         borderRadius: const BorderRadius.vertical(bottom: Radius.circular(34)),
       ),
-      child: Column(
-        children: [
-          Row(
+      child: ResponsiveHelper.centeredConstraint(
+        context: context,
+        maxTabletWidth: 800,
+        child: Column(
+          children: [
+            Row(
             children: [
               Expanded(child: _buildConnectionPill()),
               const SizedBox(width: 120),
@@ -679,6 +691,7 @@ class _HomeState extends State<Home> {
             ),
           ),
         ],
+      ),
       ),
     );
   }
@@ -857,11 +870,11 @@ class _HomeState extends State<Home> {
           shrinkWrap: true,
           itemCount: items.length,
           physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: ResponsiveHelper.isTablet(context) ? 4 : 2,
             mainAxisSpacing: 14,
             crossAxisSpacing: 14,
-            childAspectRatio: 0.98,
+            childAspectRatio: ResponsiveHelper.isTablet(context) ? 1.1 : 0.98,
           ),
           itemBuilder: (_, index) {
             final item = items[index];

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:seabot/core/app_colors.dart';
+import 'package:seabot/core/responsive_helper.dart';
 import 'package:seabot/models/message.dart';
 import 'package:seabot/repositories/messages_repository.dart';
 import 'package:seabot/services/message_service.dart';
@@ -620,8 +621,11 @@ class _ChatScreenState extends State<ChatScreen> {
                 children: [
                   _buildHeader(),
                   Expanded(
-                    child: FutureBuilder<List<Message>>(
-                      future: resultados,
+                    child: ResponsiveHelper.centeredConstraint(
+                      context: context,
+                      maxTabletWidth: 800,
+                      child: FutureBuilder<List<Message>>(
+                        future: resultados,
                       builder: (context, snapshot) {
                         List<Message> mensajesBackend = [];
                         if (snapshot.connectionState == ConnectionState.done &&
@@ -823,11 +827,15 @@ class _ChatScreenState extends State<ChatScreen> {
                         );
                       },
                     ),
+                    ),
                   ),
-                  SafeArea(
-                    top: false,
-                    minimum: const EdgeInsets.only(bottom: 4),
-                    child: Padding(
+                  ResponsiveHelper.centeredConstraint(
+                    context: context,
+                    maxTabletWidth: 800,
+                    child: SafeArea(
+                      top: false,
+                      minimum: const EdgeInsets.only(bottom: 4),
+                      child: Padding(
                       padding: EdgeInsets.only(
                         left: 12,
                         right: 12,
@@ -948,6 +956,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       ),
                     ),
                   ),
+                  ),
                 ],
               ),
             ),
@@ -997,8 +1006,11 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
         ],
       ),
-      child: Row(
-        children: [
+      child: ResponsiveHelper.centeredConstraint(
+        context: context,
+        maxTabletWidth: 800,
+        child: Row(
+          children: [
           Material(
             color: Colors.transparent,
             child: InkWell(
@@ -1088,6 +1100,7 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
         ],
+      ),
       ),
     );
   }

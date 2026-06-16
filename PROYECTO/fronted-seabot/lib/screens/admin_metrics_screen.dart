@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:seabot/core/app_colors.dart';
+import 'package:seabot/core/responsive_helper.dart';
 import 'package:seabot/models/user.dart';
 import 'package:seabot/services/user_service.dart';
 
@@ -72,132 +73,141 @@ class _AdminMetricsScreenState extends State<AdminMetricsScreen> {
 
               return SingleChildScrollView(
                 padding: const EdgeInsets.all(16),
-                child: Column(
-                  children: [
-                    // 🔹 Indicadores rápidos
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        _buildStatCard(
-                          "Usuarios",
-                          data.usuarios,
-                          AppColors.primary,
-                        ),
-                        _buildStatCard(
-                          "Chats activos",
-                          data.conversaciones,
-                          AppColors.secundary,
-                        ),
-                        _buildStatCard(
-                          "Recursos",
-                          data.recursos,
-                          Colors.deepPurple,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 30),
-
-                    // 🔹 Gráfico de barras
-                    Card(
-                      elevation: 4,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(15),
+                child: ResponsiveHelper.centeredConstraint(
+                  context: context,
+                  maxTabletWidth: 800,
+                  child: Column(
+                    children: [
+                      // 🔹 Indicadores rápidos
+                      Wrap(
+                        spacing: 14,
+                        runSpacing: 14,
+                        alignment: WrapAlignment.center,
+                        children: [
+                          _buildStatCard(
+                            "Usuarios",
+                            data.usuarios,
+                            AppColors.primary,
+                            context,
+                          ),
+                          _buildStatCard(
+                            "Chats activos",
+                            data.conversaciones,
+                            AppColors.secundary,
+                            context,
+                          ),
+                          _buildStatCard(
+                            "Recursos",
+                            data.recursos,
+                            Colors.deepPurple,
+                            context,
+                          ),
+                        ],
                       ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              "Distribución General",
-                              style: Theme.of(context).textTheme.titleMedium
-                                  ?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.black87,
-                                  ),
-                            ),
-                            const SizedBox(height: 10),
-                            SizedBox(
-                              height: 200,
-                              child: _BarChart(
-                                totalUsuarios: data.usuarios,
-                                conversacionesActivas: data.conversaciones,
-                                recursosUsados: data.recursos,
+                      const SizedBox(height: 30),
+
+                      // 🔹 Gráfico de barras
+                      Card(
+                        elevation: 4,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(15),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                "Distribución General",
+                                style: Theme.of(context).textTheme.titleMedium
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.black87,
+                                    ),
                               ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 30),
-
-                    // 🔹 Gráfico circular
-                    Card(
-                      elevation: 4,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(15),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              "Porcentaje de Uso",
-                              style: Theme.of(context).textTheme.titleMedium
-                                  ?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.black87,
-                                  ),
-                            ),
-                            const SizedBox(height: 10),
-                            SizedBox(
-                              height: 200,
-                              child: PieChart(
-                                PieChartData(
-                                  sections: [
-                                    PieChartSectionData(
-                                      value: data.usuarios.toDouble(),
-                                      color: AppColors.primary,
-                                      title: "Usuarios",
-                                      titleStyle: GoogleFonts.manrope(
-                                        color: Colors.white,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    PieChartSectionData(
-                                      value: data.conversaciones.toDouble(),
-                                      color: AppColors.secundary,
-                                      title: "Chats",
-                                      titleStyle: GoogleFonts.manrope(
-                                        color: Colors.white,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    PieChartSectionData(
-                                      value: data.recursos.toDouble(),
-                                      color: Colors.deepPurple,
-                                      title: "Recursos",
-                                      titleStyle: GoogleFonts.manrope(
-                                        color: Colors.white,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ],
-                                  sectionsSpace: 2,
-                                  centerSpaceRadius: 40,
-                                  borderData: FlBorderData(show: false),
+                              const SizedBox(height: 10),
+                              SizedBox(
+                                height: 200,
+                                child: _BarChart(
+                                  totalUsuarios: data.usuarios,
+                                  conversacionesActivas: data.conversaciones,
+                                  recursosUsados: data.recursos,
                                 ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 30),
+
+                      // 🔹 Gráfico circular
+                      Card(
+                        elevation: 4,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(15),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                "Porcentaje de Uso",
+                                style: Theme.of(context).textTheme.titleMedium
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.black87,
+                                    ),
+                              ),
+                              const SizedBox(height: 10),
+                              SizedBox(
+                                height: 200,
+                                child: PieChart(
+                                  PieChartData(
+                                    sections: [
+                                      PieChartSectionData(
+                                        value: data.usuarios.toDouble(),
+                                        color: AppColors.primary,
+                                        title: "Usuarios",
+                                        titleStyle: GoogleFonts.manrope(
+                                          color: Colors.white,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      PieChartSectionData(
+                                        value: data.conversaciones.toDouble(),
+                                        color: AppColors.secundary,
+                                        title: "Chats",
+                                        titleStyle: GoogleFonts.manrope(
+                                          color: Colors.white,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      PieChartSectionData(
+                                        value: data.recursos.toDouble(),
+                                        color: Colors.deepPurple,
+                                        title: "Recursos",
+                                        titleStyle: GoogleFonts.manrope(
+                                          color: Colors.white,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                    sectionsSpace: 2,
+                                    centerSpaceRadius: 40,
+                                    borderData: FlBorderData(show: false),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               );
             },
@@ -207,13 +217,14 @@ class _AdminMetricsScreenState extends State<AdminMetricsScreen> {
     );
   }
 
-  Widget _buildStatCard(String title, int value, Color color) {
+  Widget _buildStatCard(String title, int value, Color color, BuildContext context) {
+    final isTab = ResponsiveHelper.isTablet(context);
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       elevation: 3,
       child: Container(
         padding: const EdgeInsets.all(12),
-        width: 100,
+        width: isTab ? 160 : 100,
         child: Column(
           children: [
             Text(

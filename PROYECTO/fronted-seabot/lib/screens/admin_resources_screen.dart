@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:seabot/core/app_colors.dart';
+import 'package:seabot/core/responsive_helper.dart';
 import 'package:seabot/models/help_resource.dart';
 import 'package:seabot/services/help_resource_service.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -415,7 +416,11 @@ class _AdminResourcesScreenState extends State<AdminResourcesScreen> {
 
             // 🔹 4. DATA OK
             final data = snapshot.data!;
-            return ListView(children: data.map(_buildResourceCard).toList());
+            return ResponsiveHelper.centeredConstraint(
+              context: context,
+              maxTabletWidth: 800,
+              child: ListView(children: data.map(_buildResourceCard).toList()),
+            );
           },
         ),
         floatingActionButton: FloatingActionButton(

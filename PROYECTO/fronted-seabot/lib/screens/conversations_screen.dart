@@ -6,6 +6,7 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:intl/intl.dart';
 import 'package:seabot/core/app_colors.dart';
 import 'package:seabot/core/app_data.dart';
+import 'package:seabot/core/responsive_helper.dart';
 import 'package:seabot/models/conversation.dart';
 import 'package:seabot/repositories/conversation_repository.dart';
 import 'package:seabot/screens/chat_screen.dart';
@@ -542,7 +543,10 @@ class _ChatsScreenState extends State<ChatsScreen> {
                 children: [
                   _buildHeader(),
                   Expanded(
-                    child: FutureBuilder<List<Conversation>>(
+                    child: ResponsiveHelper.centeredConstraint(
+                      context: context,
+                      maxTabletWidth: 800,
+                      child: FutureBuilder<List<Conversation>>(
                       future: resultados,
                       builder: (context, snapshot) {
                         if (snapshot.connectionState ==
@@ -644,6 +648,7 @@ class _ChatsScreenState extends State<ChatsScreen> {
                           },
                         );
                       },
+                    ),
                     ),
                   ),
                 ],
@@ -997,8 +1002,11 @@ class _ChatsScreenState extends State<ChatsScreen> {
           ),
         ],
       ),
-      child: Stack(
-        children: [
+      child: ResponsiveHelper.centeredConstraint(
+        context: context,
+        maxTabletWidth: 800,
+        child: Stack(
+          children: [
           Positioned(
             right: -18,
             top: -10,
@@ -1069,6 +1077,7 @@ class _ChatsScreenState extends State<ChatsScreen> {
             ],
           ),
         ],
+      ),
       ),
     );
   }

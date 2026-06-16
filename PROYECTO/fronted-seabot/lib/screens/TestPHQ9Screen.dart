@@ -9,6 +9,7 @@ import 'package:seabot/screens/home_screen.dart';
 import 'package:seabot/services/phq_result_service.dart';
 import 'dart:io';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:seabot/core/responsive_helper.dart';
 
 class TestPHQ9Screen extends StatefulWidget {
   const TestPHQ9Screen({super.key});
@@ -373,9 +374,13 @@ class _TestPHQ9ScreenState extends State<TestPHQ9Screen> {
                 children: [
                   _buildHeader(),
                   Expanded(
-                    child: _showIntro
-                        ? _buildIntroScreen(context, isDark)
-                        : _buildTestScreen(context, isDark),
+                    child: ResponsiveHelper.centeredConstraint(
+                      context: context,
+                      maxTabletWidth: 600,
+                      child: _showIntro
+                          ? _buildIntroScreen(context, isDark)
+                          : _buildTestScreen(context, isDark),
+                    ),
                   ),
                 ],
               ),
@@ -426,8 +431,11 @@ class _TestPHQ9ScreenState extends State<TestPHQ9Screen> {
           ),
         ],
       ),
-      child: Stack(
-        children: [
+      child: ResponsiveHelper.centeredConstraint(
+        context: context,
+        maxTabletWidth: 600,
+        child: Stack(
+          children: [
           Positioned(
             right: -18,
             top: -10,
@@ -510,6 +518,7 @@ class _TestPHQ9ScreenState extends State<TestPHQ9Screen> {
             ],
           ),
         ],
+      ),
       ),
     );
   }

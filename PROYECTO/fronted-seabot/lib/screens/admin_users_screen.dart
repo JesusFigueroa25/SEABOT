@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:seabot/core/app_colors.dart';
+import 'package:seabot/core/responsive_helper.dart';
 import 'package:seabot/models/student.dart';
 import 'package:seabot/models/user.dart';
 import 'package:seabot/services/user_service.dart';
@@ -505,26 +506,30 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
 
             final usuariosFiltrados = _filtrarUsuarios(resultadosData);
 
-            return Column(
-              children: [
-                _buildFiltrosUsuarios(
-                  total: resultadosData.length,
-                  activos: activos,
-                  inactivos: inactivos,
-                ),
-                Expanded(
-                  child: usuariosFiltrados.isEmpty
-                      ? _buildEmptyFilterState()
-                      : ListView.builder(
-                          itemCount: usuariosFiltrados.length,
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          itemBuilder: (context, index) {
-                            final usuario = usuariosFiltrados[index];
-                            return _buildUsuarioCard(usuario);
-                          },
-                        ),
-                ),
-              ],
+            return ResponsiveHelper.centeredConstraint(
+              context: context,
+              maxTabletWidth: 800,
+              child: Column(
+                children: [
+                  _buildFiltrosUsuarios(
+                    total: resultadosData.length,
+                    activos: activos,
+                    inactivos: inactivos,
+                  ),
+                  Expanded(
+                    child: usuariosFiltrados.isEmpty
+                        ? _buildEmptyFilterState()
+                        : ListView.builder(
+                            itemCount: usuariosFiltrados.length,
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            itemBuilder: (context, index) {
+                              final usuario = usuariosFiltrados[index];
+                              return _buildUsuarioCard(usuario);
+                            },
+                          ),
+                  ),
+                ],
+              ),
             );
           },
         ),

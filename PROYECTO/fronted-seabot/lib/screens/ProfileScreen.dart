@@ -13,6 +13,7 @@ import 'package:provider/provider.dart';
 import 'package:seabot/theme/theme_notifier.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:seabot/core/responsive_helper.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -857,29 +858,33 @@ class _ProfileScreenState extends State<ProfileScreen>
 
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: _hasChanges()
-          ? SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: SizedBox(
-                  width: double.infinity,
-                  height: 56,
-                  child: FilledButton.icon(
-                    onPressed: _onSavePressed,
-                    icon: const Icon(Icons.save_rounded),
-                    label: Text(
-                      "Guardar cambios",
-                      style: GoogleFonts.manrope(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
+          ? ResponsiveHelper.centeredConstraint(
+              context: context,
+              maxTabletWidth: 800,
+              child: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: FilledButton.icon(
+                      onPressed: _onSavePressed,
+                      icon: const Icon(Icons.save_rounded),
+                      label: Text(
+                        "Guardar cambios",
+                        style: GoogleFonts.manrope(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
-                    ),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: AppColors.secundary,
-                      foregroundColor: Colors.white,
-                      elevation: 10,
-                      shadowColor: AppColors.secundary.withOpacity(0.35),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(18),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppColors.secundary,
+                        foregroundColor: Colors.white,
+                        elevation: 10,
+                        shadowColor: AppColors.secundary.withOpacity(0.35),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(18),
+                        ),
                       ),
                     ),
                   ),
@@ -935,8 +940,11 @@ class _ProfileScreenState extends State<ProfileScreen>
                   subtitle: "Gestiona tu información",
                 ),
                 Expanded(
-                  child: FutureBuilder<Student?>(
-                    future: perfil,
+                  child: ResponsiveHelper.centeredConstraint(
+                    context: context,
+                    maxTabletWidth: 800,
+                    child: FutureBuilder<Student?>(
+                      future: perfil,
                     builder: (context, snapshot) {
                       final isLoading =
                           snapshot.connectionState == ConnectionState.waiting;
@@ -1105,6 +1113,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                       );
                     },
                   ),
+                  ),
                 ),
               ],
             ),
@@ -1158,8 +1167,11 @@ class _ProfileScreenState extends State<ProfileScreen>
           ),
         ],
       ),
-      child: Stack(
-        children: [
+      child: ResponsiveHelper.centeredConstraint(
+        context: context,
+        maxTabletWidth: 800,
+        child: Stack(
+          children: [
           // 🔹 decoración
           Positioned(
             right: -18,
@@ -1253,6 +1265,7 @@ class _ProfileScreenState extends State<ProfileScreen>
             ],
           ),
         ],
+      ),
       ),
     );
   }

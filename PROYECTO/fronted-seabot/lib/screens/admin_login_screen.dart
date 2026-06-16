@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:seabot/core/app_colors.dart';
+import 'package:seabot/core/responsive_helper.dart';
 import 'package:seabot/screens/AdminDashboardScreen.dart';
 import 'package:seabot/services/user_service.dart';
 
@@ -59,9 +60,12 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
           child: Center(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Form(
-                key: _formKey,
-                child: Column(
+              child: ResponsiveHelper.centeredConstraint(
+                context: context,
+                maxTabletWidth: 430,
+                child: Form(
+                  key: _formKey,
+                  child: Column(
                   children: [
                     Image.asset("assets/images/SeaBot.png", height: 120),
                     const SizedBox(height: 20),
@@ -171,6 +175,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                     const SizedBox(height: 15),
                   ],
                 ),
+              ),
               ),
             ),
           ),
