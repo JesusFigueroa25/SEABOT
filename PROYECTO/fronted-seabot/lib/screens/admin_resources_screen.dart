@@ -332,6 +332,7 @@ class _AdminResourcesScreenState extends State<AdminResourcesScreen> {
     );
   }
 
+  // ignore: unused_element
   Widget _buildConnectionError() {
     return Center(
       child: Padding(

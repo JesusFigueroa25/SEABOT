@@ -287,10 +287,10 @@ class _ChatScreenState extends State<ChatScreen> {
 
         if (tempBotId != null && botMessageDate != null) {
           _replaceLocalMessageContent(
-            id: tempBotId!,
+            id: tempBotId,
             role: "assistant",
             content: streamedText,
-            fechaHora: botMessageDate!,
+            fechaHora: botMessageDate,
           );
         }
       });
@@ -305,10 +305,10 @@ class _ChatScreenState extends State<ChatScreen> {
       botMessageDate = DateTime.now().toUtc();
 
       final botLocalMessage = Message(
-        id: tempBotId!,
+        id: tempBotId,
         role: "assistant",
         content: "",
-        fechaHora: botMessageDate!,
+        fechaHora: botMessageDate,
         conversationID: widget.conversationId,
       );
 
@@ -372,7 +372,7 @@ class _ChatScreenState extends State<ChatScreen> {
         _botTyping = false;
         _sendingMessage = false;
         if (tempBotId != null) {
-          _removeEmptyLocalMessage(tempBotId!);
+          _removeEmptyLocalMessage(tempBotId);
         }
         _localMessages.removeWhere((m) => m.id == tempUserId || (tempBotId != null && m.id == tempBotId));
         _loadingInitialMessages = false;
@@ -915,9 +915,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                               alignment: Alignment.bottomRight,
                                               child: Text(
                                                 // ignore: unnecessary_null_comparison, dead_code
-                                                message.fechaHora != null
-                                                    ? "${message.fechaHora.toLocal().hour.toString().padLeft(2, '0')}:${message.fechaHora.toLocal().minute.toString().padLeft(2, '0')}"
-                                                    : "${DateTime.now().hour.toString().padLeft(2, '0')}:${DateTime.now().minute.toString().padLeft(2, '0')}",
+                                                "${message.fechaHora.toLocal().hour.toString().padLeft(2, '0')}:${message.fechaHora.toLocal().minute.toString().padLeft(2, '0')}",
                                                 style: GoogleFonts.manrope(
                                                   fontSize: 10.5,
                                                   color: isUser

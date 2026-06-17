@@ -39,7 +39,9 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   String _avatar = "😀";
   bool? _notificaciones;
+  // ignore: unused_field
   bool _notificacionPruebaActiva = false;
+  // ignore: unused_field
   bool _pruebaCanalDiarioEnCurso = false;
 
   final List<String> _avatarImages = [
@@ -754,7 +756,8 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   //Prueba de Notificaciones
-  Future<void> _onTestNotificationChanged(bool enabled) async {
+  /*
+    Future<void> _onTestNotificationChanged(bool enabled) async {
     if (!enabled) {
       await NotificationService.cancelTestNotification();
 
@@ -847,6 +850,8 @@ class _ProfileScreenState extends State<ProfileScreen>
     );
   }
 
+  */
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -927,136 +932,138 @@ class _ProfileScreenState extends State<ProfileScreen>
                     maxTabletWidth: 800,
                     child: FutureBuilder<Student?>(
                       future: perfil,
-                    builder: (context, snapshot) {
-                      final isLoading =
-                          snapshot.connectionState == ConnectionState.waiting;
-                      final student = snapshot.data;
+                      builder: (context, snapshot) {
+                        final isLoading =
+                            snapshot.connectionState == ConnectionState.waiting;
+                        final student = snapshot.data;
 
-                      if (student != null) {
-                        if (_originalAlias.isEmpty) {
-                          _originalAlias = student.alias ?? "";
-                          _originalContacto = student.safeContact ?? "";
-                          _originalCorreo = student.correo ?? "";
+                        if (student != null) {
+                          if (_originalAlias.isEmpty) {
+                            _originalAlias = student.alias ?? "";
+                            _originalContacto = student.safeContact ?? "";
+                            _originalCorreo = student.correo ?? "";
 
-                          WidgetsBinding.instance.addPostFrameCallback((_) {
-                            if (!mounted) return;
+                            WidgetsBinding.instance.addPostFrameCallback((_) {
+                              if (!mounted) return;
 
-                            _controllerAlias.text = _originalAlias;
-                            _controllerSafeContact.text = _originalContacto;
-                            _controllerCorreo.text = _originalCorreo;
+                              _controllerAlias.text = _originalAlias;
+                              _controllerSafeContact.text = _originalContacto;
+                              _controllerCorreo.text = _originalCorreo;
 
-                            setState(() {});
-                          });
+                              setState(() {});
+                            });
+                          }
                         }
-                      }
-                      return ListView(
-                        physics: const ClampingScrollPhysics(),
-                        padding: const EdgeInsets.fromLTRB(18, 18, 18, 24),
-                        children: [
-                          _buildProfileHeroCard(isDark, isLoading, student),
-                          const SizedBox(height: 18),
+                        return ListView(
+                          physics: const ClampingScrollPhysics(),
+                          padding: const EdgeInsets.fromLTRB(18, 18, 18, 24),
+                          children: [
+                            _buildProfileHeroCard(isDark, isLoading, student),
+                            const SizedBox(height: 18),
 
-                          _buildSectionTitle("Información personal", isDark),
-                          const SizedBox(height: 12),
-                          _buildCard(
-                            isDark: isDark,
-                            child: Column(
-                              children: [
-                                _buildPremiumField(
-                                  context: context,
-                                  controller: _controllerAlias,
-                                  label: "Alias",
-                                  icon: Icons.person_rounded,
-                                  maxLength: 20,
-                                  keyboardType: TextInputType.text,
-                                  inputFormatters: [
-                                    FilteringTextInputFormatter.allow(
-                                      RegExp(r'[a-zA-Z0-9áéíóúÁÉÍÓÚñÑ_ ]'),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 16),
-                                _buildPremiumField(
-                                  context: context,
-                                  controller: _controllerSafeContact,
-                                  label: "Contacto seguro",
-                                  icon: Icons.contact_phone_rounded,
-                                  maxLength: 9,
-                                  keyboardType: TextInputType.phone,
-                                ),
-                                const SizedBox(height: 16),
-                                _buildPremiumField(
-                                  context: context,
-                                  controller: _controllerCorreo,
-                                  label: "Correo",
-                                  icon: Icons.email_rounded,
-                                  keyboardType: TextInputType.emailAddress,
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 20),
-
-                          _buildSectionTitle("Preferencias", isDark),
-                          const SizedBox(height: 12),
-                          _buildCard(
-                            isDark: isDark,
-                            child: Column(
-                              children: [
-                                _buildSwitchTile(
-                                  isDark: isDark,
-                                  icon: Icons.dark_mode_rounded,
-                                  iconColor: const Color(0xFF7C4DFF),
-                                  title: "Tema oscuro",
-                                  subtitle:
-                                      "Personaliza la apariencia de la app",
-                                  value: context
-                                      .watch<ThemeNotifier>()
-                                      .isDarkMode,
-                                  onChanged: (val) {
-                                    context.read<ThemeNotifier>().toggleTheme(
-                                      val,
-                                    );
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                          val
-                                              ? "🌙 Tema oscuro activado"
-                                              : "☀️ Tema claro activado",
-                                          style: GoogleFonts.manrope(
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.w700,
-                                          ),
-                                        ),
-                                        backgroundColor: val
-                                            ? AppColors.secondaryDark
-                                            : AppColors.primary,
-                                        behavior: SnackBarBehavior.floating,
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            14,
-                                          ),
-                                        ),
+                            _buildSectionTitle("Información personal", isDark),
+                            const SizedBox(height: 12),
+                            _buildCard(
+                              isDark: isDark,
+                              child: Column(
+                                children: [
+                                  _buildPremiumField(
+                                    context: context,
+                                    controller: _controllerAlias,
+                                    label: "Alias",
+                                    icon: Icons.person_rounded,
+                                    maxLength: 20,
+                                    keyboardType: TextInputType.text,
+                                    inputFormatters: [
+                                      FilteringTextInputFormatter.allow(
+                                        RegExp(r'[a-zA-Z0-9áéíóúÁÉÍÓÚñÑ_ ]'),
                                       ),
-                                    );
-                                  },
-                                ),
-                                _buildDivider(isDark),
-                                _buildSwitchTile(
-                                  isDark: isDark,
-                                  icon: Icons.notifications_rounded,
-                                  iconColor: Colors.orange,
-                                  title: "Recibir notificaciones",
-                                  subtitle:
-                                      "Recordatorios diarios de bienestar",
-                                  value: _notificaciones ?? false,
-                                  onChanged: (val) async {
-                                    await _onNotificationsChanged(val);
-                                  },
-                                ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 16),
+                                  _buildPremiumField(
+                                    context: context,
+                                    controller: _controllerSafeContact,
+                                    label: "Contacto seguro",
+                                    icon: Icons.contact_phone_rounded,
+                                    maxLength: 9,
+                                    keyboardType: TextInputType.phone,
+                                  ),
+                                  const SizedBox(height: 16),
+                                  _buildPremiumField(
+                                    context: context,
+                                    controller: _controllerCorreo,
+                                    label: "Correo",
+                                    icon: Icons.email_rounded,
+                                    keyboardType: TextInputType.emailAddress,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 20),
 
-                                //Prueba de Notificacion Instantanea - 10 Segundos
-                                /* _buildDivider(isDark),
+                            _buildSectionTitle("Preferencias", isDark),
+                            const SizedBox(height: 12),
+                            _buildCard(
+                              isDark: isDark,
+                              child: Column(
+                                children: [
+                                  _buildSwitchTile(
+                                    isDark: isDark,
+                                    icon: Icons.dark_mode_rounded,
+                                    iconColor: const Color(0xFF7C4DFF),
+                                    title: "Tema oscuro",
+                                    subtitle:
+                                        "Personaliza la apariencia de la app",
+                                    value: context
+                                        .watch<ThemeNotifier>()
+                                        .isDarkMode,
+                                    onChanged: (val) {
+                                      context.read<ThemeNotifier>().toggleTheme(
+                                        val,
+                                      );
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            val
+                                                ? "🌙 Tema oscuro activado"
+                                                : "☀️ Tema claro activado",
+                                            style: GoogleFonts.manrope(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.w700,
+                                            ),
+                                          ),
+                                          backgroundColor: val
+                                              ? AppColors.secondaryDark
+                                              : AppColors.primary,
+                                          behavior: SnackBarBehavior.floating,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(
+                                              14,
+                                            ),
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                  _buildDivider(isDark),
+                                  _buildSwitchTile(
+                                    isDark: isDark,
+                                    icon: Icons.notifications_rounded,
+                                    iconColor: Colors.orange,
+                                    title: "Recibir notificaciones",
+                                    subtitle:
+                                        "Recordatorios diarios de bienestar",
+                                    value: _notificaciones ?? false,
+                                    onChanged: (val) async {
+                                      await _onNotificationsChanged(val);
+                                    },
+                                  ),
+
+                                  //Prueba de Notificacion Instantanea - 10 Segundos
+                                  /* _buildDivider(isDark),
                                 _buildActionTile(
                                   isDark: isDark,
                                   icon: Icons.notification_important_rounded,
@@ -1072,29 +1079,29 @@ class _ProfileScreenState extends State<ProfileScreen>
                                       ? null
                                       : _onDailyChannelDiagnosticPressed,
                                 ),*/
-                              ],
-                            ),
-                          ),
-
-                          if (!isLoading && student == null) ...[
-                            const SizedBox(height: 16),
-                            Center(
-                              child: Text(
-                                "No se encontraron datos del perfil.",
-                                style: GoogleFonts.manrope(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  color: isDark
-                                      ? Colors.white70
-                                      : Colors.black54,
-                                ),
+                                ],
                               ),
                             ),
+
+                            if (!isLoading && student == null) ...[
+                              const SizedBox(height: 16),
+                              Center(
+                                child: Text(
+                                  "No se encontraron datos del perfil.",
+                                  style: GoogleFonts.manrope(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: isDark
+                                        ? Colors.white70
+                                        : Colors.black54,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ],
-                        ],
-                      );
-                    },
-                  ),
+                        );
+                      },
+                    ),
                   ),
                 ),
               ],
@@ -1154,100 +1161,102 @@ class _ProfileScreenState extends State<ProfileScreen>
         maxTabletWidth: 800,
         child: Stack(
           children: [
-          // 🔹 decoración
-          Positioned(
-            right: -18,
-            top: -10,
-            child: Container(
-              width: 120,
-              height: 120,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.08),
+            // 🔹 decoración
+            Positioned(
+              right: -18,
+              top: -10,
+              child: Container(
+                width: 120,
+                height: 120,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withOpacity(0.08),
+                ),
               ),
             ),
-          ),
-          Positioned(
-            left: -20,
-            bottom: -30,
-            child: Container(
-              width: 110,
-              height: 110,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.06),
+            Positioned(
+              left: -20,
+              bottom: -30,
+              child: Container(
+                width: 110,
+                height: 110,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withOpacity(0.06),
+                ),
               ),
             ),
-          ),
 
-          // 🔹 contenido
-          Row(
-            children: [
-              // 🔥 BOTÓN BACK REUTILIZABLE
-              Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(16),
-                  onTap: () async {
-                    if (onWillPopCustom != null) {
-                      final canLeave = await onWillPopCustom();
-                      if (canLeave && mounted) Navigator.pop(context);
-                    } else {
-                      if (mounted) Navigator.pop(context);
-                    }
-                  },
-                  child: Container(
-                    width: 50,
-                    height: 50,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.18),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.white.withOpacity(0.24)),
-                    ),
-                    child: const Icon(
-                      Icons.arrow_back_rounded,
-                      color: Colors.white,
-                      size: 26,
+            // 🔹 contenido
+            Row(
+              children: [
+                // 🔥 BOTÓN BACK REUTILIZABLE
+                Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(16),
+                    onTap: () async {
+                      if (onWillPopCustom != null) {
+                        final canLeave = await onWillPopCustom();
+                        if (canLeave && mounted) Navigator.pop(context);
+                      } else {
+                        if (mounted) Navigator.pop(context);
+                      }
+                    },
+                    child: Container(
+                      width: 50,
+                      height: 50,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.18),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.24),
+                        ),
+                      ),
+                      child: const Icon(
+                        Icons.arrow_back_rounded,
+                        color: Colors.white,
+                        size: 26,
+                      ),
                     ),
                   ),
                 ),
-              ),
 
-              const SizedBox(width: 14),
+                const SizedBox(width: 14),
 
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: GoogleFonts.manrope(
-                        color: Colors.white,
-                        fontSize: 24,
-                        fontWeight: FontWeight.w800,
-                        height: 1.1,
-                        letterSpacing: -0.4,
-                      ),
-                    ),
-
-                    if (subtitle != null) ...[
-                      const SizedBox(height: 5),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                       Text(
-                        subtitle,
+                        title,
                         style: GoogleFonts.manrope(
-                          color: Colors.white.withOpacity(0.92),
-                          fontSize: 13.8,
-                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                          fontSize: 24,
+                          fontWeight: FontWeight.w800,
+                          height: 1.1,
+                          letterSpacing: -0.4,
                         ),
                       ),
+
+                      if (subtitle != null) ...[
+                        const SizedBox(height: 5),
+                        Text(
+                          subtitle,
+                          style: GoogleFonts.manrope(
+                            color: Colors.white.withOpacity(0.92),
+                            fontSize: 13.8,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
-              ),
-            ],
-          ),
-        ],
-      ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1461,6 +1470,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     );
   }
 
+  // ignore: unused_element
   Widget _buildActionTile({
     required bool isDark,
     required IconData icon,

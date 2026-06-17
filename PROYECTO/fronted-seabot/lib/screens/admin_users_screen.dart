@@ -347,6 +347,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
     );
   }
 
+  // ignore: unused_element
   Widget _buildConnectionError() {
     return Center(
       child: Padding(
