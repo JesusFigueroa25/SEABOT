@@ -202,67 +202,168 @@ class _EmotionalQuickLogScreenState extends State<EmotionalQuickLogScreen> {
     }
   }
 
-  Widget _buildEmotionButton(String emoji, String label, bool isDark) {
+  IconData _getIconForEmotion(String label) {
+    switch (label) {
+      case "Alegría":
+        return Icons.sentiment_very_satisfied_rounded;
+      case "Tristeza":
+        return Icons.sentiment_very_dissatisfied_rounded;
+      case "Ira":
+        return Icons.mood_bad_rounded;
+      case "Miedo":
+        return Icons.sentiment_neutral_rounded;
+      default:
+        return Icons.sentiment_satisfied_rounded;
+    }
+  }
+
+  Color _getEmotionAccentColor(String label) {
+    switch (label) {
+      case "Alegría":
+        return const Color(0xFFFFB300); // Ámbar cálido
+      case "Tristeza":
+        return const Color(0xFF42A5F5); // Azul cielo
+      case "Ira":
+        return const Color(0xFFEF5350); // Rojo coral suave
+      case "Miedo":
+        return const Color(0xFFAB47BC); // Lavanda/Morado
+      default:
+        return AppColors.primary;
+    }
+  }
+
+  Color _getEmotionBgColor(String label, bool isDark) {
+    switch (label) {
+      case "Alegría":
+        return isDark ? const Color(0xFF2E2612) : const Color(0xFFFFFDE7);
+      case "Tristeza":
+        return isDark ? const Color(0xFF162536) : const Color(0xFFE3F2FD);
+      case "Ira":
+        return isDark ? const Color(0xFF2F1B1B) : const Color(0xFFFFEBEE);
+      case "Miedo":
+        return isDark ? const Color(0xFF271B30) : const Color(0xFFF3E5F5);
+      default:
+        return isDark ? const Color(0xFF1C2430) : const Color(0xFFF3F6FA);
+    }
+  }
+
+  Widget _buildEmotionButton(String emoji, String label, bool isDark, double cardWidth) {
     final isSelected = _selectedEmotion == label;
+    final accentColor = _getEmotionAccentColor(label);
+    final bgColor = _getEmotionBgColor(label, isDark);
+    final iconData = _getIconForEmotion(label);
 
     return Material(
       color: Colors.transparent,
       child: InkWell(
         borderRadius: BorderRadius.circular(24),
         onTap: () => _onEmotionPressed(emoji, label),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 220),
-          width: 140,
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-          decoration: BoxDecoration(
-            color: isSelected
-                ? AppColors.secundaryStart.withOpacity(0.12)
-                : (isDark
-                      ? const Color(0xFF171C24)
-                      : Colors.white.withOpacity(0.95)),
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(
+        child: AnimatedScale(
+          scale: isSelected ? 1.04 : 1.0,
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOutBack,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            width: cardWidth,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+            decoration: BoxDecoration(
               color: isSelected
-                  ? AppColors.secundaryStart
+                  ? bgColor
                   : (isDark
-                        ? Colors.white.withOpacity(0.04)
-                        : Colors.black.withOpacity(0.04)),
-              width: isSelected ? 1.5 : 1,
+                        ? const Color(0xFF171C24)
+                        : Colors.white.withValues(alpha: 0.95)),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(
+                color: isSelected
+                    ? accentColor
+                    : (isDark
+                          ? Colors.white.withValues(alpha: 0.04)
+                          : Colors.black.withValues(alpha: 0.04)),
+                width: isSelected ? 2.0 : 1.0,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: isSelected
+                      ? accentColor.withValues(alpha: isDark ? 0.20 : 0.15)
+                      : Colors.black.withValues(alpha: isDark ? 0.18 : 0.05),
+                  blurRadius: isSelected ? 22 : 14,
+                  offset: isSelected ? const Offset(0, 8) : const Offset(0, 6),
+                ),
+              ],
             ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(isDark ? 0.18 : 0.06),
-                blurRadius: 18,
-                offset: const Offset(0, 10),
-              ),
-            ],
-          ),
-          child: Column(
-            children: [
-              Container(
-                width: 66,
-                height: 66,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: isDark
-                      ? AppColors.secundary.withOpacity(0.18)
-                      : AppColors.secundary.withOpacity(0.12),
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 62,
+                      height: 62,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: isSelected
+                            ? accentColor.withValues(alpha: 0.24)
+                            : (isDark
+                                ? Colors.white.withValues(alpha: 0.04)
+                                : accentColor.withValues(alpha: 0.10)),
+                      ),
+                      child: Center(
+                        child: Icon(
+                          iconData,
+                          size: 32,
+                          color: isSelected
+                              ? accentColor
+                              : (isDark ? Colors.white70 : accentColor.withValues(alpha: 0.85)),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          emoji,
+                          style: const TextStyle(fontSize: 15),
+                        ),
+                        const SizedBox(width: 4),
+                        Flexible(
+                          child: Text(
+                            label,
+                            textAlign: TextAlign.center,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.manrope(
+                              fontSize: 14.5,
+                              fontWeight: FontWeight.w800,
+                              color: isDark ? Colors.white : const Color(0xFF18202A),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-                child: Center(
-                  child: Text(emoji, style: const TextStyle(fontSize: 34)),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                label,
-                textAlign: TextAlign.center,
-                style: GoogleFonts.manrope(
-                  fontSize: 14.5,
-                  fontWeight: FontWeight.w800,
-                  color: isDark ? Colors.white : const Color(0xFF18202A),
-                ),
-              ),
-            ],
+                if (isSelected)
+                  Positioned(
+                    top: -10,
+                    right: -6,
+                    child: Container(
+                      padding: const EdgeInsets.all(2),
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.check_circle_rounded,
+                        color: accentColor,
+                        size: 20,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
       ),
@@ -374,17 +475,23 @@ class _EmotionalQuickLogScreenState extends State<EmotionalQuickLogScreen> {
                                   ),
                                 ),
                                 const SizedBox(height: 20),
-                                Wrap(
-                                  alignment: WrapAlignment.center,
-                                  spacing: 14,
-                                  runSpacing: 14,
-                                  children: _emotions.map((emotion) {
-                                    return _buildEmotionButton(
-                                      emotion["emoji"]!,
-                                      emotion["label"]!,
-                                      isDark,
+                                LayoutBuilder(
+                                  builder: (context, constraints) {
+                                    final double cardWidth = ((constraints.maxWidth - 14) / 2).clamp(100.0, 240.0);
+                                    return Wrap(
+                                      alignment: WrapAlignment.center,
+                                      spacing: 14,
+                                      runSpacing: 14,
+                                      children: _emotions.map((emotion) {
+                                        return _buildEmotionButton(
+                                          emotion["emoji"]!,
+                                          emotion["label"]!,
+                                          isDark,
+                                          cardWidth,
+                                        );
+                                      }).toList(),
                                     );
-                                  }).toList(),
+                                  },
                                 ),
                                 if (_isRegistering) ...[
                                   const SizedBox(height: 18),
