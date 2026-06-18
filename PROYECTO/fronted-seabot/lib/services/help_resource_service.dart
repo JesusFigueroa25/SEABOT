@@ -1,9 +1,10 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/help_resource.dart';
+import 'package:seabot/core/app_api.dart';
 
 class HelpResourceService {
-  final String baseUrl = "http://192.168.0.6:8080/helpresources";
+  final String baseUrl = "${AppCore.baseApiUrl}/helpresources";
 
 
   Future<void> createResource(Map<String, dynamic> body) async {

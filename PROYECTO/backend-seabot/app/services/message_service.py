@@ -8,7 +8,7 @@ from app.models.emotionalRegister_model import EmotionalRegister
 from app.repositories import message_repository
 from app.schemas.message_schemas import MessageCreate, MessageUpdate, MessageInput, MessageOut
 from datetime import datetime
-from openai import OpenAI
+from openai import APIConnectionError, APIError, APITimeoutError, OpenAI
 from app.models.conversation_model import Conversation
 from app.models.summary_model import Summary
 from dotenv import load_dotenv
@@ -453,6 +453,166 @@ def _log_stream_context_step(label: str, started_at: float, conversation_id: int
     print(f"[PERF] Stream context {label}: {now - started_at:.4f}s (ConvID: {conversation_id})", flush=True)
     return now
 
+def _get_env_float(name: str, default: float) -> float:
+    raw_value = os.getenv(name)
+    if not raw_value:
+        return default
+
+    try:
+        value = float(raw_value)
+        if value <= 0:
+            raise ValueError
+        return value
+    except ValueError:
+        print(f"[WARN] Invalid {name}={raw_value!r}; using {default}", flush=True)
+        return default
+
+def _get_prompt_stats(messages: list[dict]) -> tuple[int, int]:
+    total_chars = 0
+    for message in messages:
+        content = message.get("content", "")
+        if isinstance(content, str):
+            total_chars += len(content)
+        elif isinstance(content, list):
+            total_chars += sum(len(str(item)) for item in content)
+        else:
+            total_chars += len(str(content))
+
+    return len(messages), total_chars
+
+def _create_chat_stream(model: str | None, messages: list[dict], timeout_seconds: float):
+    if not model:
+        raise ValueError("OpenAI model is not configured")
+
+    return clientGPT.with_options(
+        timeout=timeout_seconds,
+        max_retries=0,
+    ).chat.completions.create(
+        model=model,
+        messages=messages,
+        temperature=0.7,
+        max_tokens=130,
+        stream=True
+    )
+
+def _get_stream_delta(chunk) -> str:
+    return chunk.choices[0].delta.content if chunk.choices and chunk.choices[0].delta.content else ""
+
+def _iter_openai_stream_with_fallback(obj: MessageInput, messages: list[dict]):
+    primary_model = os.getenv("FINE_TUNED_MODEL")
+    fallback_model = os.getenv("OPENAI_STREAM_FALLBACK_MODEL")
+    primary_timeout = _get_env_float("OPENAI_STREAM_TIMEOUT_SECONDS", 20.0)
+    fallback_timeout = _get_env_float("OPENAI_STREAM_FALLBACK_TIMEOUT_SECONDS", primary_timeout)
+    prompt_message_count, prompt_total_chars = _get_prompt_stats(messages)
+    fallback_used = False
+    last_stream_error = None
+
+    print(
+        "[PERF] Stream OpenAI config: "
+        f"primary_model={primary_model or 'not_configured'} "
+        f"fallback_model={fallback_model or 'not_configured'} "
+        f"primary_timeout={primary_timeout:.2f}s "
+        f"fallback_timeout={fallback_timeout:.2f}s "
+        f"prompt_messages={prompt_message_count} "
+        f"prompt_chars={prompt_total_chars} "
+        f"(ConvID: {obj.conversation_id})",
+        flush=True
+    )
+
+    attempts = [(primary_model, primary_timeout, False)]
+    if fallback_model:
+        attempts.append((fallback_model, fallback_timeout, True))
+
+    for model_name, timeout_seconds, is_fallback in attempts:
+        emitted_content_chunk = False
+
+        if is_fallback:
+            fallback_used = True
+
+        try:
+            print(
+                "[PERF] Stream OpenAI attempt: "
+                f"model={model_name or 'not_configured'} "
+                f"timeout={timeout_seconds:.2f}s "
+                f"fallback={is_fallback} "
+                f"(ConvID: {obj.conversation_id})",
+                flush=True
+            )
+
+            stream = _create_chat_stream(model_name, messages, timeout_seconds)
+
+            for chunk in stream:
+                if not _get_stream_delta(chunk):
+                    continue
+
+                if not emitted_content_chunk:
+                    print(
+                        "[PERF] Stream OpenAI first content source: "
+                        f"model={model_name} "
+                        f"fallback_used={fallback_used} "
+                        f"(ConvID: {obj.conversation_id})",
+                        flush=True
+                    )
+
+                emitted_content_chunk = True
+                yield chunk
+
+            if emitted_content_chunk:
+                print(
+                    f"[PERF] Stream OpenAI fallback_used={fallback_used} "
+                    f"(ConvID: {obj.conversation_id})",
+                    flush=True
+                )
+                return
+
+            raise Exception("Respuesta vacia desde OpenAI")
+
+        except (APITimeoutError, APIConnectionError, APIError) as e:
+            last_stream_error = e
+            print(
+                "[ERROR] [PERF] Stream OpenAI API error: "
+                f"{type(e).__name__}: {e} "
+                f"(Model: {model_name}, Fallback: {is_fallback}, "
+                f"EmittedChunk: {emitted_content_chunk}, ConvID: {obj.conversation_id})",
+                flush=True
+            )
+        except Exception as e:
+            last_stream_error = e
+            print(
+                "[ERROR] [PERF] Stream OpenAI error: "
+                f"{type(e).__name__}: {e} "
+                f"(Model: {model_name}, Fallback: {is_fallback}, "
+                f"EmittedChunk: {emitted_content_chunk}, ConvID: {obj.conversation_id})",
+                flush=True
+            )
+
+        if emitted_content_chunk:
+            print(
+                f"[PERF] Stream OpenAI fallback_used={fallback_used} "
+                f"(Skipped fallback after partial stream, ConvID: {obj.conversation_id})",
+                flush=True
+            )
+            raise last_stream_error
+
+        if is_fallback or not fallback_model:
+            print(
+                f"[PERF] Stream OpenAI fallback_used={fallback_used} "
+                f"(ConvID: {obj.conversation_id})",
+                flush=True
+            )
+            raise last_stream_error
+
+        print(
+            f"[PERF] Stream OpenAI switching to fallback model "
+            f"(ConvID: {obj.conversation_id})",
+            flush=True
+        )
+
+    if last_stream_error:
+        raise last_stream_error
+
+    raise Exception("No se pudo generar la respuesta desde OpenAI")
+
 def build_message_context(db: Session, obj: MessageInput):
     t_context_start = time.perf_counter()
     t_step = t_context_start
@@ -564,19 +724,13 @@ def create_message_stream(db: Session, obj: MessageInput, background_tasks: Back
         user_fecha_hora = to_lima_naive(obj.fecha_hora)
 
         try:
-            stream = clientGPT.chat.completions.create(
-                model=os.getenv("FINE_TUNED_MODEL"),
-                messages=input_for_response,
-                temperature=0.7,
-                max_tokens=130,
-                stream=True
-            )
+            stream = _iter_openai_stream_with_fallback(obj, input_for_response)
 
             for chunk in stream:
                 if chunk.id and response_id is None:
                     response_id = chunk.id
 
-                delta = chunk.choices[0].delta.content if chunk.choices and chunk.choices[0].delta.content else ""
+                delta = _get_stream_delta(chunk)
                 if delta:
                     if t_first_token is None:
                         t_first_token = time.perf_counter() - t_stream_start

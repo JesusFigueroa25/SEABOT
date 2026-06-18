@@ -1,9 +1,10 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/summary.dart';
+import 'package:seabot/core/app_api.dart';
 
 class SummaryService {
-  final String baseUrl = "http://192.168.0.6:8080/summaries";
+  final String baseUrl = "${AppCore.baseApiUrl}/summaries";
 
 
   Future<void> createSummary(Map<String, dynamic> body) async {

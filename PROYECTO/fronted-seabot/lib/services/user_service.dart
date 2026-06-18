@@ -6,10 +6,11 @@ import 'package:seabot/core/app_data.dart';
 import 'package:seabot/models/student.dart';
 import '../models/user.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:seabot/core/app_api.dart';
 
 class UserService {
   final String baseUrl =
-      "http://192.168.0.6:8080/users";
+      "${AppCore.baseApiUrl}/users";
 
   Future<User> createUser(Map<String, dynamic> body) async {
     final response = await http.post(
@@ -174,7 +175,7 @@ class UserService {
 
 class AuthService {
   final String baseUrl =
-      "http://192.168.0.6:8080/users";
+      "https://seabot-backend-993787742289.us-central1.run.app/users";
 
   final _storage = const FlutterSecureStorage();
 

@@ -1,9 +1,10 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/student.dart';
+import 'package:seabot/core/app_api.dart';
 
 class StudentService {
-  final String baseUrl = "http://192.168.0.6:8080/students";
+  final String baseUrl = "${AppCore.baseApiUrl}/students";
 
   Future<Student> createStudent(Map<String, dynamic> body) async {
     final response = await http.post(
