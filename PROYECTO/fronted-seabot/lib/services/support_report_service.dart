@@ -7,7 +7,7 @@ import 'package:seabot/models/support_report.dart';
 import 'package:http_parser/http_parser.dart';
 
 class SupportReportService {
-  final String baseUrl = "https://seabot-backend-993787742289.us-central1.run.app/supports";
+  final String baseUrl = "http://192.168.0.6:8080/supports";
 
   String _getErrorMessage(http.Response response) {
     try {

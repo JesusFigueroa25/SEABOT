@@ -25,6 +25,13 @@ def get_obj(Obj_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Object not found")
     return Objecto
 
+@router.get("/by-user/{user_id}", response_model=StudentGet)
+def get_by_user_id(user_id: int, db: Session = Depends(get_db)):
+    objecto = student_service.find_by_user_id(db, user_id)
+    if not objecto:
+        raise HTTPException(status_code=404, detail="Student not found for user")
+    return objecto
+
 @router.put("/{Obj_id}", status_code=status.HTTP_204_NO_CONTENT)
 def update(Obj_id: int, objecto: StudentUpdate, db: Session = Depends(get_db)):
     student_service.modify(db, Obj_id, objecto)

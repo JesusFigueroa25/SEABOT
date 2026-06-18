@@ -16,6 +16,7 @@ from google.cloud import language_v1
 from app.database.database import SessionLocal
 import time
 import os
+from app.utils.datetime_utils import now_lima_naive, to_lima_naive
 
 load_dotenv()
 
@@ -239,7 +240,8 @@ def create_message(db: Session, obj: MessageInput, background_tasks: BackgroundT
         t_openai = time.perf_counter() - t2
         print(f"[PERF] Non-stream OpenAI API response time: {t_openai:.4f}s (ResponseID: {response.id})", flush=True)
 
-        now = datetime.utcnow()
+        user_fecha_hora = to_lima_naive(obj.fecha_hora)
+        bot_fecha_hora = now_lima_naive()
 
         # Crear ambos mensajes sin commit intermedio
         user_msg = Message(
@@ -247,7 +249,7 @@ def create_message(db: Session, obj: MessageInput, background_tasks: BackgroundT
             role="user",
             content=obj.content,
             response_id=response.id,
-            fecha_hora=now,
+            fecha_hora=user_fecha_hora,
             score=None,
             magnitude=None,
             category=None
@@ -258,7 +260,7 @@ def create_message(db: Session, obj: MessageInput, background_tasks: BackgroundT
             role="assistant",
             content=output_text,
             response_id=response.id,
-            fecha_hora=now,
+            fecha_hora=bot_fecha_hora,
             score=None,
             magnitude=None,
             category=None
@@ -432,7 +434,7 @@ def generate_and_save_summary(conversation_id: int):
             start_message_id=bloque[0].id,
             end_message_id=bloque[-1].id,
             resumen=resumen_txt,
-            fecha_hora=datetime.utcnow()
+            fecha_hora=now_lima_naive()
         )
 
         db.add(db_summary)
@@ -541,7 +543,7 @@ def create_message_stream(db: Session, obj: MessageInput, background_tasks: Back
         t_first_token = None
         output_text = ""
         response_id = None
-        now = datetime.utcnow()
+        user_fecha_hora = to_lima_naive(obj.fecha_hora)
 
         try:
             stream = clientGPT.chat.completions.create(
@@ -576,7 +578,7 @@ def create_message_stream(db: Session, obj: MessageInput, background_tasks: Back
                     role="user",
                     content=obj.content,
                     response_id=response_id or "",
-                    fecha_hora=now,
+                    fecha_hora=user_fecha_hora,
                     score=None,
                     magnitude=None,
                     category=None
@@ -587,7 +589,7 @@ def create_message_stream(db: Session, obj: MessageInput, background_tasks: Back
                     role="assistant",
                     content=output_text.strip(),
                     response_id=response_id or "",
-                    fecha_hora=now,
+                    fecha_hora=now_lima_naive,
                     score=None,
                     magnitude=None,
                     category=None

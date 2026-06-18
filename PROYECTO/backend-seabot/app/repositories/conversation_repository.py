@@ -3,10 +3,9 @@ from sqlalchemy.orm import Session
 from app.models.conversation_model import Conversation
 from app.schemas.conversation_schemas import ConversationCreate, ConversationUpdate, ConversationUpdateName, ConversationUpdateCal
 from sqlalchemy import desc, asc
+from app.utils.datetime_utils import to_lima_naive
 
 #Cambiar de clase "schema"
-
-
 def get(db: Session):
     return db.query(Conversation).all()
 
@@ -16,11 +15,11 @@ def get_by_id(db: Session, object_id: int):
 def update(db: Session, object_id: int, objeto: ConversationUpdate):
     db_object = get_by_id(db, object_id)
     if db_object:
-    #Colocar todos los atributos correctos
         db_object.openai_id = objeto.openai_id
         db_object.name_conversation = objeto.name_conversation
         db_object.qualification = objeto.qualification
         db_object.fecha_inicio = objeto.fecha_inicio
+        db_object.fecha_inicio = to_lima_naive(objeto.fecha_inicio)
         db_object.enable = objeto.enable
         db.commit()
         db.refresh(db_object)
@@ -58,7 +57,6 @@ def modifyCalification(db: Session, object_id: int, objeto: ConversationUpdateCa
         db.refresh(db_object)
     return db_object    
 
-
 def get_student_id_by_conversation(db: Session, conversation_id: int) -> int:
     conv = (
         db.query(Conversation)
@@ -66,7 +64,6 @@ def get_student_id_by_conversation(db: Session, conversation_id: int) -> int:
         .first()
     )
     return conv.student_id
-
 
 #Crear Conversacion de OpenAI
 
@@ -82,7 +79,7 @@ def create(db: Session, objeto: ConversationCreate):
         openai_id=objeto.openai_id, 
         name_conversation=objeto.name_conversation, 
         qualification=objeto.qualification, 
-        fecha_inicio=objeto.fecha_inicio, 
+        fecha_inicio=to_lima_naive(objeto.fecha_inicio), 
         enable=objeto.enable, 
         student_id=objeto.student_id,
     )

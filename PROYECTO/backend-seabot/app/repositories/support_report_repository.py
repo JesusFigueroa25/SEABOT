@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session
 from app.models.support_report_model import SupportReport
 from app.schemas.support_report_schema import SupportReportCreate, SupportReportUpdate
 from sqlalchemy import func
+from app.utils.datetime_utils import to_lima_naive
 
 def create(db: Session, objeto: SupportReportCreate):
     db_object = SupportReport(
@@ -15,17 +16,6 @@ def create(db: Session, objeto: SupportReportCreate):
     db.commit()
     db.refresh(db_object)
     return db_object
-
-
-def get(db: Session):
-    return (
-        db.query(SupportReport)
-        .order_by(SupportReport.created_at.desc())
-        .all()
-    )
-
-def get_by_id(db: Session, object_id: int):
-    return db.query(SupportReport).filter(SupportReport.id == object_id).first()
 
 def update(db: Session, object_id: int, objeto: SupportReportUpdate):
     db_object = get_by_id(db, object_id)
@@ -58,6 +48,19 @@ def patch(db: Session, object_id: int, objeto: SupportReportUpdate):
     db.commit()
     db.refresh(db_object)
     return db_object
+
+
+def get(db: Session):
+    return (
+        db.query(SupportReport)
+        .order_by(SupportReport.created_at.desc())
+        .all()
+    )
+
+def get_by_id(db: Session, object_id: int):
+    return db.query(SupportReport).filter(SupportReport.id == object_id).first()
+
+
 
 def delete(db: Session, object_id: int):
     db_object = get_by_id(db, object_id)

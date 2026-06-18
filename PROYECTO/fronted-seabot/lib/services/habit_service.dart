@@ -4,7 +4,7 @@ import 'package:seabot/core/app_data.dart';
 import 'package:seabot/models/habit.dart';
 
 class HabitService {
-  final String baseUrl = "https://seabot-backend-993787742289.us-central1.run.app/habits";
+  final String baseUrl = "http://192.168.0.6:8080/habits";
 
   Future<List<Habit>> getDailyHabits(int studentId) async {
     final response = await http.get(

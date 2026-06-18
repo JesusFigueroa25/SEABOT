@@ -4,13 +4,12 @@ from app.schemas.emotionalRegister_schemas import EmotionalRegisterCreate, Emoti
 from sqlalchemy import desc, asc
 from datetime import date,datetime
 from sqlalchemy import func
-#Cambiar de clase "schema"
+from app.utils.datetime_utils import to_lima_naive
 
 def create(db: Session, objeto: EmotionalRegisterCreate):
-    #Colocar todos los atributos correctos
     db_object = EmotionalRegister(
         emotion=objeto.emotion, 
-        fecha_hora=objeto.fecha_hora, 
+        fecha_hora=to_lima_naive(objeto.fecha_hora),
         student_id=objeto.student_id,
     )
     db.add(db_object)
@@ -18,21 +17,20 @@ def create(db: Session, objeto: EmotionalRegisterCreate):
     db.refresh(db_object)
     return db_object
 
+def update(db: Session, object_id: int, objeto: EmotionalRegisterUpdate):
+    db_object = get_by_id(db, object_id)
+    if db_object:
+        db_object.emotion = objeto.emotion
+        db_object.fecha_hora = to_lima_naive(objeto.fecha_hora)
+        db.commit()
+        db.refresh(db_object)
+    return db_object
+
 def get(db: Session):
     return db.query(EmotionalRegister).all()
 
 def get_by_id(db: Session, object_id: int):
     return db.query(EmotionalRegister).filter(EmotionalRegister.id == object_id).first()
-
-def update(db: Session, object_id: int, objeto: EmotionalRegisterUpdate):
-    db_object = get_by_id(db, object_id)
-    if db_object:
-    #Colocar todos los atributos correctos
-        db_object.emotion = objeto.emotion
-        db_object.fecha_hora = objeto.fecha_hora
-        db.commit()
-        db.refresh(db_object)
-    return db_object
 
 def delete(db: Session, object_id: int):
     db_object = get_by_id(db, object_id)

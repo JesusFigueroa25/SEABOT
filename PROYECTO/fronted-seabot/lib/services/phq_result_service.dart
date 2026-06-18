@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import '../models/phq_result.dart';
 
 class PhqResultService {
-  final String baseUrl = "https://seabot-backend-993787742289.us-central1.run.app/phqresults";
+  final String baseUrl = "http://192.168.0.6:8080/phqresults";
 
 
   Future<void> createResult(Map<String, dynamic> body) async {

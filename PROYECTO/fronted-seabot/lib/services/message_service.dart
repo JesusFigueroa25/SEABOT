@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import '../models/message.dart';
 
 class MessageService {
-  final String baseUrl = "https://seabot-backend-993787742289.us-central1.run.app/messages";
+  final String baseUrl = "http://192.168.0.6:8080/messages";
 
   Future<List<Message>> getAllMessages() async {
     final response = await http.get(Uri.parse("$baseUrl/"));

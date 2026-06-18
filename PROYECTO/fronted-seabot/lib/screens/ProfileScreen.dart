@@ -935,6 +935,32 @@ class _ProfileScreenState extends State<ProfileScreen>
                       builder: (context, snapshot) {
                         final isLoading =
                             snapshot.connectionState == ConnectionState.waiting;
+
+                        if (snapshot.hasError) {
+                          debugPrint(
+                            '[ProfileScreen] ERROR PERFIL: ${snapshot.error}',
+                          );
+
+                          return ListView(
+                            padding: const EdgeInsets.fromLTRB(18, 18, 18, 24),
+                            children: [
+                              _buildProfileHeroCard(isDark, false, null),
+                              const SizedBox(height: 16),
+                              Center(
+                                child: Text(
+                                  "Error al cargar perfil: ${snapshot.error}",
+                                  textAlign: TextAlign.center,
+                                  style: GoogleFonts.manrope(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.redAccent,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          );
+                        }
+
                         final student = snapshot.data;
 
                         if (student != null) {

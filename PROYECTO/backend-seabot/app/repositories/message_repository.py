@@ -2,8 +2,7 @@ from sqlalchemy.orm import Session
 from app.models.message_model import Message
 from app.schemas.message_schemas import MessageCreate, MessageUpdate, MessageInput, MessageOut
 from sqlalchemy import desc, asc
-#Cambiar de clase "schema"
-
+from app.utils.datetime_utils import to_lima_naive
 
 def get(db: Session):
     return db.query(Message).all()
@@ -14,7 +13,6 @@ def get_by_id(db: Session, object_id: int):
 def update(db: Session, object_id: int, objeto: MessageUpdate):
     db_object = get_by_id(db, object_id)
     if db_object:
-    #Colocar todos los atributos correctos
         db_object.role = objeto.role
         db_object.content = objeto.content
         db.commit()
@@ -60,12 +58,11 @@ def count_by_conversation(db: Session, conversation_id: int) -> int:
     
     
 def createOutput(db: Session, objeto: MessageCreate)-> MessageOut:
-    #Colocar todos los atributos correctos
     db_object = Message(
         role=objeto.role, 
         content=objeto.content, 
         response_id=objeto.response_id, 
-        fecha_hora=objeto.fecha_hora, 
+        fecha_hora=to_lima_naive(objeto.fecha_hora),
         conversation_id=objeto.conversation_id,
         score=objeto.score,
         magnitude=objeto.magnitude,
@@ -77,11 +74,13 @@ def createOutput(db: Session, objeto: MessageCreate)-> MessageOut:
     return MessageOut.model_validate(db_object)
 
 def createInput(db: Session, objeto: MessageInput):
-    #Colocar todos los atributos correctos
+    print("FECHA RECIBIDA:", objeto.fecha_hora)
+    print("TZINFO:", objeto.fecha_hora.tzinfo if objeto.fecha_hora else None)
+    print("FECHA LIMA:", to_lima_naive(objeto.fecha_hora))
     db_object = Message(
         role=objeto.role, 
         content=objeto.content, 
-        fecha_hora=objeto.fecha_hora, 
+        fecha_hora=to_lima_naive(objeto.fecha_hora),
         conversation_id=objeto.conversation_id,
         response_id=objeto.response_id,
         score=objeto.score,
