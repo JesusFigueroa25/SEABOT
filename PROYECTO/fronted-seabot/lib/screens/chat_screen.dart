@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'dart:ui';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
@@ -126,16 +125,9 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<bool> _hasInternet() async {
-    var connectivityResult = await Connectivity().checkConnectivity();
-    if (connectivityResult == ConnectivityResult.none) return false;
-    try {
-      final result = await InternetAddress.lookup(
-        'example.com',
-      ).timeout(const Duration(seconds: 3));
-      return result.isNotEmpty && result[0].rawAddress.isNotEmpty;
-    } catch (_) {
-      return false;
-    }
+    final connectivityResult = await Connectivity().checkConnectivity();
+    return connectivityResult.isNotEmpty &&
+        !connectivityResult.contains(ConnectivityResult.none);
   }
 
   Future<void> _onSendPressed() async {
@@ -323,9 +315,21 @@ class _ChatScreenState extends State<ChatScreen> {
         _scrollToBottom(animated: false, settle: false);
       }
 
+      final streamWatch = Stopwatch()..start();
+      bool firstChunkLogged = false;
+
+      debugPrint("[PERF][CHAT] Stream request started");
+
       await for (final chunk in serviceController.createMessageStream(
-        inputResponse,
+        inputResponse, 
       )) {
+        if (!firstChunkLogged) {
+          firstChunkLogged = true;
+          debugPrint(
+            "[PERF][CHAT] First chunk received in ${streamWatch.elapsedMilliseconds}ms",
+          );
+        }
+
         if (!mounted) return;
 
         if (chunk.contains("[ERROR_STREAM]")) {
@@ -336,6 +340,10 @@ class _ChatScreenState extends State<ChatScreen> {
 
         flushStreamedText();
       }
+
+      debugPrint(
+        "[PERF][CHAT] Stream finished in ${streamWatch.elapsedMilliseconds}ms",
+      );
 
       flushStreamedText(force: true);
 

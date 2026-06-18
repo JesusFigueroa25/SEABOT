@@ -448,13 +448,26 @@ def generate_and_save_summary(conversation_id: int):
         
 #STREAMING
 
-def build_message_context(db: Session, obj: MessageInput):
-    total = message_repository.count_by_conversation(db, obj.conversation_id)
+def _log_stream_context_step(label: str, started_at: float, conversation_id: int) -> float:
+    now = time.perf_counter()
+    print(f"[PERF] Stream context {label}: {now - started_at:.4f}s (ConvID: {conversation_id})", flush=True)
+    return now
 
-    conv = db.query(Conversation).filter_by(id=obj.conversation_id).first()
-    if not conv:
+def build_message_context(db: Session, obj: MessageInput):
+    t_context_start = time.perf_counter()
+    t_step = t_context_start
+
+    conv_with_student = (
+        db.query(Conversation, Student)
+        .outerjoin(Student, Conversation.student_id == Student.id)
+        .filter(Conversation.id == obj.conversation_id)
+        .first()
+    )
+    t_step = _log_stream_context_step("conversation + student query", t_step, obj.conversation_id)
+    if not conv_with_student:
         raise HTTPException(status_code=404, detail="Conversación no encontrada")
 
+    conv, student = conv_with_student
     resumen = conv.conversation_summary or ""
     student_id = conv.student_id
 
@@ -464,8 +477,8 @@ def build_message_context(db: Session, obj: MessageInput):
         .order_by(PhqResult.fecha.desc())
         .first()
     )
+    t_step = _log_stream_context_step("latest PHQ query", t_step, obj.conversation_id)
 
-    student = db.query(Student).filter(Student.id == student_id).first()
     alias = student.alias if student and student.alias else "Usuario"
 
     emotion_last = (
@@ -474,10 +487,12 @@ def build_message_context(db: Session, obj: MessageInput):
         .order_by(EmotionalRegister.fecha_hora.desc())
         .first()
     )
+    t_step = _log_stream_context_step("latest emotion query", t_step, obj.conversation_id)
 
     ultimos = message_repository.get_last_messages(
         db, obj.conversation_id, limit=2
     )
+    t_step = _log_stream_context_step("latest messages query", t_step, obj.conversation_id)
 
     last_sentiment_msg = (
         db.query(Message)
@@ -488,6 +503,7 @@ def build_message_context(db: Session, obj: MessageInput):
         .order_by(Message.id.desc())
         .first()
     )
+    t_step = _log_stream_context_step("latest sentiment query", t_step, obj.conversation_id)
 
     if last_sentiment_msg:
         contexto_sentimiento = build_sentiment_context(
@@ -529,11 +545,13 @@ def build_message_context(db: Session, obj: MessageInput):
         "content": obj.content
     })
 
-    return conv, total, input_for_response
+    _log_stream_context_step("total prompt assembly", t_context_start, obj.conversation_id)
+
+    return conv, input_for_response
 
 def create_message_stream(db: Session, obj: MessageInput, background_tasks: BackgroundTasks):
     t_start = time.perf_counter()
-    conv, total, input_for_response = build_message_context(db, obj)
+    conv, input_for_response = build_message_context(db, obj)
     conversation_openai_id = conv.openai_id
     t_context = time.perf_counter() - t_start
     print(f"[PERF] Stream context building time: {t_context:.4f}s (ConvID: {obj.conversation_id})", flush=True)
@@ -589,7 +607,7 @@ def create_message_stream(db: Session, obj: MessageInput, background_tasks: Back
                     role="assistant",
                     content=output_text.strip(),
                     response_id=response_id or "",
-                    fecha_hora=now_lima_naive,
+                    fecha_hora=now_lima_naive(),
                     score=None,
                     magnitude=None,
                     category=None
@@ -617,7 +635,9 @@ def create_message_stream(db: Session, obj: MessageInput, background_tasks: Back
                         output_text.strip()
                     )
 
-                new_total = total + 2
+                t_summary_count_start = time.perf_counter()
+                new_total = message_repository.count_by_conversation(db_stream, obj.conversation_id)
+                print(f"[PERF] Stream summary count time: {time.perf_counter() - t_summary_count_start:.4f}s (ConvID: {obj.conversation_id})", flush=True)
                 if new_total % 6 == 0:
                     background_tasks.add_task(
                         generate_and_save_summary,
@@ -638,7 +658,3 @@ def create_message_stream(db: Session, obj: MessageInput, background_tasks: Back
             print(f"[PERF] Stream total execution time (OpenAI + Stream): {t_stream_total:.4f}s (ConvID: {obj.conversation_id})", flush=True)
 
     return stream_generator()
-
-
-
-
