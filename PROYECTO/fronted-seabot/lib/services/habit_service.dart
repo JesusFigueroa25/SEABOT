@@ -6,6 +6,7 @@ import 'package:seabot/core/app_api.dart';
 
 class HabitService {
   final String baseUrl = "${AppCore.baseApiUrl}/habits";
+  
 
   Future<List<Habit>> getDailyHabits(int studentId) async {
     final response = await http.get(
