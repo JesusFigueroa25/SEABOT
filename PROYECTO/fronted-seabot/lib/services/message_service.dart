@@ -1,9 +1,11 @@
 import 'dart:convert';
+import 'dart:developer' as developer;
 import 'package:http/http.dart' as http;
 import '../models/message.dart';
+import 'package:seabot/core/app_api.dart';
 
 class MessageService {
-  final String baseUrl = "https://seabot-backend-993787742289.us-central1.run.app/messages";
+  final String baseUrl = "${AppCore.baseApiUrl}/messages";
 
   Future<List<Message>> getAllMessages() async {
     final response = await http.get(Uri.parse("$baseUrl/"));
@@ -83,26 +85,43 @@ class MessageService {
 
   Stream<String> createMessageStream(Map<String, dynamic> body) async* {
     final uri = Uri.parse("$baseUrl/createMessages/stream");
+    final stopwatch = Stopwatch()..start();
 
     final request = http.Request("POST", uri);
 
     request.headers.addAll({
       "Content-Type": "application/json",
-      "Accept": "text/plain",
+      "Accept": "text/event-stream",
     });
 
     request.body = json.encode(body);
 
     final response = await request.send();
+    developer.log(
+      "[PERF] Chat stream response headers time: ${stopwatch.elapsedMilliseconds}ms (status: ${response.statusCode})",
+    );
 
     if (response.statusCode == 200 || response.statusCode == 201) {
+      var firstChunkLogged = false;
       await for (final chunk in response.stream.transform(utf8.decoder)) {
         if (chunk.isNotEmpty) {
+          if (!firstChunkLogged) {
+            firstChunkLogged = true;
+            developer.log(
+              "[PERF] Chat stream first chunk time: ${stopwatch.elapsedMilliseconds}ms",
+            );
+          }
           yield chunk;
         }
       }
+      developer.log(
+        "[PERF] Chat stream total client time: ${stopwatch.elapsedMilliseconds}ms",
+      );
     } else {
       await response.stream.drain();
+      developer.log(
+        "[PERF] Chat stream failed after: ${stopwatch.elapsedMilliseconds}ms",
+      );
       throw Exception("Error streaming ${response.statusCode}");
     }
   }

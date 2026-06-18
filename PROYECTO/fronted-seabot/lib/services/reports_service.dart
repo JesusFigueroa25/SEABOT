@@ -1,9 +1,10 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:seabot/models/reports_models.dart';
+import 'package:seabot/core/app_api.dart';
 
 class ReportsService {
-  final String baseUrl = "https://seabot-backend-993787742289.us-central1.run.app/admin/reports";
+  final String baseUrl = "${AppCore.baseApiUrl}/admin/reports";
 
   // CA1
   Future<List<WeeklyActivity>> getWeeklyActivity() async {

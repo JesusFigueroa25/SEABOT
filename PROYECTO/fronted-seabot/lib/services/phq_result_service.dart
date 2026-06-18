@@ -1,9 +1,10 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/phq_result.dart';
+import 'package:seabot/core/app_api.dart';
 
 class PhqResultService {
-  final String baseUrl = "https://seabot-backend-993787742289.us-central1.run.app/phqresults";
+  final String baseUrl = "${AppCore.baseApiUrl}/phqresults";
 
 
   Future<void> createResult(Map<String, dynamic> body) async {

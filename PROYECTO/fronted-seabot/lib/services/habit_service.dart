@@ -2,9 +2,10 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:seabot/core/app_data.dart';
 import 'package:seabot/models/habit.dart';
+import 'package:seabot/core/app_api.dart';
 
 class HabitService {
-  final String baseUrl = "https://seabot-backend-993787742289.us-central1.run.app/habits";
+  final String baseUrl = "${AppCore.baseApiUrl}/habits";
 
   Future<List<Habit>> getDailyHabits(int studentId) async {
     final response = await http.get(

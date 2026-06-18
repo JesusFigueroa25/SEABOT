@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 from app.repositories import student_repository
 from app.schemas.student_schema import StudentCreate, StudentUpdate
+from app.models.student_model import Student
 
 def register(db: Session, objecto: StudentCreate):
     return student_repository.create(db, objecto)
@@ -25,3 +26,6 @@ def getUsersDetail(db: Session, object_id: int):
 
 def exists_by_correo(db: Session, correo: str) -> bool:
     return student_repository.exists_by_correo(db, correo)
+
+def find_by_user_id(db: Session, user_id: int):
+    return db.query(Student).filter(Student.user_id == user_id).first()

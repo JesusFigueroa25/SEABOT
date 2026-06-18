@@ -7,59 +7,62 @@ from sqlalchemy import text
 def get_actividad_semanal(db: Session):
     query = text("""
     WITH mensajes_ordenados AS (
-        SELECT
-            m.id,
-            m.conversation_id,
-            m.fecha_hora,
-            LAG(m.fecha_hora) OVER (
-                PARTITION BY m.conversation_id
-                ORDER BY m.fecha_hora
-            ) AS prev_time
-        FROM messages m
-        JOIN conversations c ON c.id = m.conversation_id
-        WHERE m.conversation_id IN (SELECT conversation_id FROM selected_conversations_view)
-    ),
-    bloques AS (
-        SELECT
-            id,
-            conversation_id,
-            fecha_hora,
-            CASE
-                WHEN prev_time IS NULL THEN 1
-                WHEN EXTRACT(EPOCH FROM (fecha_hora - prev_time)) > 1800 THEN 1
-                ELSE 0
-            END AS corte
-        FROM mensajes_ordenados
-    ),
-    sesiones AS (
-        SELECT
-            id,
-            conversation_id,
-            fecha_hora,
-            SUM(corte) OVER (
-                PARTITION BY conversation_id
-                ORDER BY fecha_hora
-            ) AS session_id
-        FROM bloques
-    ),
-    duraciones AS (
-        SELECT
-            conversation_id,
-            session_id,
-            MIN(fecha_hora) AS inicio_sesion,
-            MAX(fecha_hora) AS fin_sesion,
-            EXTRACT(EPOCH FROM (MAX(fecha_hora) - MIN(fecha_hora))) / 60 AS duracion_min
-        FROM sesiones
-        GROUP BY conversation_id, session_id
-    ),
-    mensajes_por_sesion AS (
-        SELECT
-            conversation_id,
-            session_id,
-            COUNT(*) AS total_mensajes
-        FROM sesiones
-        GROUP BY conversation_id, session_id
+    SELECT
+        m.id,
+        m.conversation_id,
+        m.fecha_hora,
+        LAG(m.fecha_hora) OVER (
+            PARTITION BY m.conversation_id
+            ORDER BY m.fecha_hora
+        ) AS prev_time
+    FROM messages m
+    JOIN conversations c ON c.id = m.conversation_id
+    WHERE m.conversation_id IN (
+        SELECT conversation_id 
+        FROM selected_conversations_view
     )
+),
+bloques AS (
+    SELECT
+        id,
+        conversation_id,
+        fecha_hora,
+        CASE
+            WHEN prev_time IS NULL THEN 1
+            WHEN EXTRACT(EPOCH FROM (fecha_hora - prev_time)) > 1800 THEN 1
+            ELSE 0
+        END AS corte
+    FROM mensajes_ordenados
+),
+sesiones AS (
+    SELECT
+        id,
+        conversation_id,
+        fecha_hora,
+        SUM(corte) OVER (
+            PARTITION BY conversation_id
+            ORDER BY fecha_hora
+        ) AS session_id
+    FROM bloques
+),
+duraciones AS (
+    SELECT
+        conversation_id,
+        session_id,
+        MIN(fecha_hora) AS inicio_sesion,
+        MAX(fecha_hora) AS fin_sesion,
+        EXTRACT(EPOCH FROM (MAX(fecha_hora) - MIN(fecha_hora))) / 60 AS duracion_min
+    FROM sesiones
+    GROUP BY conversation_id, session_id
+),
+mensajes_por_sesion AS (
+    SELECT
+        conversation_id,
+        session_id,
+        COUNT(*) AS total_mensajes
+    FROM sesiones
+    GROUP BY conversation_id, session_id
+)
 SELECT
     DATE_TRUNC('week', d.inicio_sesion) AS semana,
     COUNT(*) AS sesiones_totales,
@@ -69,9 +72,8 @@ FROM duraciones d
 JOIN mensajes_por_sesion mps
     ON d.conversation_id = mps.conversation_id
    AND d.session_id = mps.session_id
-WHERE d.duracion_min > 0
-  AND mps.total_mensajes >= 3
 GROUP BY DATE_TRUNC('week', d.inicio_sesion)
+HAVING COUNT(*) > 1
 ORDER BY semana;
 
     """)

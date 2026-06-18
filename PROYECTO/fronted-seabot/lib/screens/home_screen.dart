@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:seabot/core/app_colors.dart';
 import 'package:seabot/core/app_data.dart';
+import 'package:seabot/core/responsive_helper.dart';
 import 'package:seabot/models/habit.dart';
 import 'package:seabot/repositories/habits_repository.dart';
 import 'package:seabot/repositories/student_repository.dart';
@@ -20,6 +21,7 @@ import 'package:seabot/screens/TestPHQ9Screen.dart';
 import 'package:seabot/screens/conversations_screen.dart';
 import 'package:seabot/screens/resourceshealthy.dart';
 import 'package:seabot/services/phq_result_service.dart';
+import 'package:seabot/screens/widgets/seabot_widgets.dart';
 
 class Home extends StatefulWidget {
   const Home({super.key});
@@ -553,7 +555,11 @@ class _HomeState extends State<Home> {
                 _buildBigMotivationalCard(),
             ],
           ),
-          bottomNavigationBar: _buildCustomNavBar(isDark),
+          bottomNavigationBar: ResponsiveHelper.centeredConstraint(
+            context: context,
+            maxTabletWidth: 600,
+            child: _buildCustomNavBar(isDark),
+          ),
         ),
       ),
     );
@@ -571,15 +577,19 @@ class _HomeState extends State<Home> {
                 offset: const Offset(0, -22),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 18),
-                  child: Column(
-                    children: [
-                      _buildQuickStatusCard(isDark),
-                      const SizedBox(height: 18),
-                      _buildToolsSection(theme, isDark),
-                      const SizedBox(height: 22),
-                      _buildHabitsSection(isDark),
-                      const SizedBox(height: 24),
-                    ],
+                  child: ResponsiveHelper.centeredConstraint(
+                    context: context,
+                    maxTabletWidth: 800,
+                    child: Column(
+                      children: [
+                        _buildQuickStatusCard(isDark),
+                        const SizedBox(height: 18),
+                        _buildToolsSection(theme, isDark),
+                        const SizedBox(height: 22),
+                        _buildHabitsSection(isDark),
+                        const SizedBox(height: 24),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -606,9 +616,12 @@ class _HomeState extends State<Home> {
         ),
         borderRadius: const BorderRadius.vertical(bottom: Radius.circular(34)),
       ),
-      child: Column(
-        children: [
-          Row(
+      child: ResponsiveHelper.centeredConstraint(
+        context: context,
+        maxTabletWidth: 800,
+        child: Column(
+          children: [
+            Row(
             children: [
               Expanded(child: _buildConnectionPill()),
               const SizedBox(width: 120),
@@ -679,6 +692,7 @@ class _HomeState extends State<Home> {
             ),
           ),
         ],
+      ),
       ),
     );
   }
@@ -836,14 +850,7 @@ class _HomeState extends State<Home> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          "Herramientas de bienestar",
-          style: GoogleFonts.manrope(
-            fontSize: 21,
-            fontWeight: FontWeight.w800,
-            color: isDark ? Colors.white : const Color(0xFF151922),
-          ),
-        ),
+        const SeaBotSectionTitle(title: "Herramientas de bienestar"),
         const SizedBox(height: 6),
         Text(
           "Accesos rápidos para cuidarte mejor cada día",
@@ -857,11 +864,11 @@ class _HomeState extends State<Home> {
           shrinkWrap: true,
           itemCount: items.length,
           physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: ResponsiveHelper.isTablet(context) ? 4 : 2,
             mainAxisSpacing: 14,
             crossAxisSpacing: 14,
-            childAspectRatio: 0.98,
+            childAspectRatio: ResponsiveHelper.isTablet(context) ? 1.1 : 0.98,
           ),
           itemBuilder: (_, index) {
             final item = items[index];
@@ -932,14 +939,7 @@ class _HomeState extends State<Home> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          "Hábitos de bienestar",
-          style: GoogleFonts.manrope(
-            fontSize: 21,
-            fontWeight: FontWeight.w800,
-            color: isDark ? Colors.white : const Color(0xFF151922),
-          ),
-        ),
+        const SeaBotSectionTitle(title: "Hábitos de bienestar"),
         const SizedBox(height: 6),
         Text(
           _dailyHabits.isEmpty
@@ -1074,27 +1074,10 @@ class _HomeState extends State<Home> {
     EdgeInsetsGeometry padding = const EdgeInsets.all(16),
     double radius = 22,
   }) {
-    return Container(
-      width: double.infinity,
+    return SeaBotCard(
+      borderRadius: radius,
       padding: padding,
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF171C24) : Colors.white,
-        borderRadius: BorderRadius.circular(radius),
-        border: Border.all(
-          color: isDark
-              ? Colors.white.withOpacity(0.06)
-              : const Color(0xFFE8EDF5),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: isDark
-                ? Colors.black.withOpacity(0.18)
-                : const Color(0x0D10233F),
-            blurRadius: 24,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
+      color: isDark ? const Color(0xFF171C24) : Colors.white,
       child: child,
     );
   }

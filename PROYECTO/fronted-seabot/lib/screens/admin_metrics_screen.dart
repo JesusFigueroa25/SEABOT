@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:seabot/core/app_colors.dart';
+import 'package:seabot/core/responsive_helper.dart';
 import 'package:seabot/models/user.dart';
 import 'package:seabot/services/user_service.dart';
+import 'package:seabot/screens/widgets/seabot_widgets.dart';
 
 class AdminMetricsScreen extends StatefulWidget {
   const AdminMetricsScreen({super.key});
@@ -56,14 +58,15 @@ class _AdminMetricsScreenState extends State<AdminMetricsScreen> {
             future: resultados,
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
+                return const SeaBotLoadingState(text: "Cargando métricas...");
               } else if (snapshot.hasError) {
                 return _buildConnectionError();
               } else if (!snapshot.hasData) {
                 return const Center(
-                  child: Text(
-                    "❌ No se pudieron cargar las métricas.",
-                    style: TextStyle(fontSize: 18, color: Colors.red),
+                  child: SeaBotEmptyState(
+                    icon: Icons.error_outline_rounded,
+                    message: "No se pudieron cargar las métricas.",
+                    subMessage: "Inténtalo de nuevo más tarde.",
                   ),
                 );
               }
@@ -72,38 +75,42 @@ class _AdminMetricsScreenState extends State<AdminMetricsScreen> {
 
               return SingleChildScrollView(
                 padding: const EdgeInsets.all(16),
-                child: Column(
-                  children: [
-                    // 🔹 Indicadores rápidos
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        _buildStatCard(
-                          "Usuarios",
-                          data.usuarios,
-                          AppColors.primary,
-                        ),
-                        _buildStatCard(
-                          "Chats activos",
-                          data.conversaciones,
-                          AppColors.secundary,
-                        ),
-                        _buildStatCard(
-                          "Recursos",
-                          data.recursos,
-                          Colors.deepPurple,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 30),
-
-                    // 🔹 Gráfico de barras
-                    Card(
-                      elevation: 4,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(15),
+                child: ResponsiveHelper.centeredConstraint(
+                  context: context,
+                  maxTabletWidth: 800,
+                  child: Column(
+                    children: [
+                      // 🔹 Indicadores rápidos
+                      Wrap(
+                        spacing: 14,
+                        runSpacing: 14,
+                        alignment: WrapAlignment.center,
+                        children: [
+                          _buildStatCard(
+                            "Usuarios",
+                            data.usuarios,
+                            AppColors.primary,
+                            context,
+                          ),
+                          _buildStatCard(
+                            "Chats activos",
+                            data.conversaciones,
+                            AppColors.secundary,
+                            context,
+                          ),
+                          _buildStatCard(
+                            "Recursos",
+                            data.recursos,
+                            Colors.deepPurple,
+                            context,
+                          ),
+                        ],
                       ),
-                      child: Padding(
+                      const SizedBox(height: 30),
+
+                      // 🔹 Gráfico de barras
+                      SeaBotCard(
+                        borderRadius: 15,
                         padding: const EdgeInsets.all(16),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -128,16 +135,11 @@ class _AdminMetricsScreenState extends State<AdminMetricsScreen> {
                           ],
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 30),
+                      const SizedBox(height: 30),
 
-                    // 🔹 Gráfico circular
-                    Card(
-                      elevation: 4,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(15),
-                      ),
-                      child: Padding(
+                      // 🔹 Gráfico circular
+                      SeaBotCard(
+                        borderRadius: 15,
                         padding: const EdgeInsets.all(16),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -196,8 +198,8 @@ class _AdminMetricsScreenState extends State<AdminMetricsScreen> {
                           ],
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               );
             },
@@ -207,62 +209,42 @@ class _AdminMetricsScreenState extends State<AdminMetricsScreen> {
     );
   }
 
-  Widget _buildStatCard(String title, int value, Color color) {
-    return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      elevation: 3,
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        width: 100,
-        child: Column(
-          children: [
-            Text(
-              title,
-              style: GoogleFonts.manrope(
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-                color: Colors.black87,
-              ),
+  Widget _buildStatCard(String title, int value, Color color, BuildContext context) {
+    final isTab = ResponsiveHelper.isTablet(context);
+    return SeaBotCard(
+      borderRadius: 12,
+      padding: const EdgeInsets.all(12),
+      width: isTab ? 160 : 100,
+      child: Column(
+        children: [
+          Text(
+            title,
+            style: GoogleFonts.manrope(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: Colors.black87,
             ),
-            const SizedBox(height: 8),
-            Text(
-              "$value",
-              style: GoogleFonts.manrope(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            "$value",
+            style: GoogleFonts.manrope(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: color,
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildConnectionError() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(
-              Icons.wifi_off_rounded,
-              size: 48,
-              color: Colors.redAccent,
-            ),
-            const SizedBox(height: 12),
-            Text(
-              "Sin conexión a internet",
-              style: GoogleFonts.manrope(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: Colors.redAccent,
-              ),
-            ),
-            const SizedBox(height: 16),
-          ],
-        ),
+    return const Center(
+      child: SeaBotEmptyState(
+        icon: Icons.wifi_off_rounded,
+        message: "Sin conexión a internet",
+        subMessage: "Por favor, verifica tu conexión a la red.",
       ),
     );
   }

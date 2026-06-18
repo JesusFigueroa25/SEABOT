@@ -1,10 +1,10 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/student.dart';
+import 'package:seabot/core/app_api.dart';
 
 class StudentService {
-  final String baseUrl =
-      "https://seabot-backend-993787742289.us-central1.run.app/students";
+  final String baseUrl = "${AppCore.baseApiUrl}/students";
 
   Future<Student> createStudent(Map<String, dynamic> body) async {
     final response = await http.post(
@@ -37,26 +37,82 @@ class StudentService {
   }
 
   Future<Student> getStudentById(int id) async {
-    final response = await http.get(Uri.parse("$baseUrl/$id"));
-    if (response.statusCode == 200) {
-      return Student.fromJsonStudent(json.decode(response.body));
-    } else {
-      throw Exception("Error al obtener estudiante con id $id");
+    final url = Uri.parse("$baseUrl/$id");
+
+    print("[StudentService] GET $url");
+
+    try {
+      final response = await http.get(url).timeout(const Duration(seconds: 10));
+
+      print("[StudentService] status: ${response.statusCode}");
+      print("[StudentService] body: ${response.body}");
+
+      if (response.statusCode == 200) {
+        return Student.fromJsonStudent(json.decode(response.body));
+      }
+
+      throw Exception(
+        "Error al obtener estudiante con id $id. "
+        "Status: ${response.statusCode}. Body: ${response.body}",
+      );
+    } catch (e) {
+      print("[StudentService] ERROR GET student: $e");
+      rethrow;
     }
   }
 
   Future<void> updateStudent(int id, Map<String, dynamic> body) async {
-    final response = await http.put(
-      Uri.parse("$baseUrl/$id"),
-      headers: {"Content-Type": "application/json"},
-      body: json.encode(body),
-    );
+    final url = Uri.parse("$baseUrl/$id");
+
+    print("[StudentService] PUT $url");
+    print("[StudentService] body: ${json.encode(body)}");
+
+    final response = await http
+        .put(
+          url,
+          headers: {"Content-Type": "application/json"},
+          body: json.encode(body),
+        )
+        .timeout(const Duration(seconds: 10));
+
+    print("[StudentService] status: ${response.statusCode}");
+    print("[StudentService] response: ${response.body}");
+
     if (response.statusCode == 200 ||
         response.statusCode == 201 ||
         response.statusCode == 204) {
       print("Resultado modificado correctamente");
-    } else {
-      throw Exception("Error al crear entrada");
+      return;
+    }
+
+    throw Exception(
+      "Error al actualizar estudiante con id $id. "
+      "Status: ${response.statusCode}. Body: ${response.body}",
+    );
+  }
+
+  Future<Student> getStudentByUserId(int userId) async {
+    final url = Uri.parse("$baseUrl/by-user/$userId");
+
+    print("[StudentService] GET $url");
+
+    try {
+      final response = await http.get(url).timeout(const Duration(seconds: 10));
+
+      print("[StudentService] status: ${response.statusCode}");
+      print("[StudentService] body: ${response.body}");
+
+      if (response.statusCode == 200) {
+        return Student.fromJsonStudent(json.decode(response.body));
+      }
+
+      throw Exception(
+        "Error al obtener estudiante por user_id $userId. "
+        "Status: ${response.statusCode}. Body: ${response.body}",
+      );
+    } catch (e) {
+      print("[StudentService] ERROR GET student by user_id: $e");
+      rethrow;
     }
   }
 

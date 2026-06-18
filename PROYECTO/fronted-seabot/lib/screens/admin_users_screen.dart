@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:seabot/core/app_colors.dart';
+import 'package:seabot/core/responsive_helper.dart';
 import 'package:seabot/models/student.dart';
 import 'package:seabot/models/user.dart';
+import 'package:seabot/screens/widgets/seabot_widgets.dart';
 import 'package:seabot/services/user_service.dart';
 
 class AdminUsersScreen extends StatefulWidget {
@@ -345,6 +347,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
     );
   }
 
+  // ignore: unused_element
   Widget _buildConnectionError() {
     return Center(
       child: Padding(
@@ -474,21 +477,25 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
           future: resultados,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
+              return const SeaBotLoadingState(text: "Cargando usuarios...");
             }
 
             if (snapshot.hasError) {
-              return _buildConnectionError();
+              return const Center(
+                child: SeaBotEmptyState(
+                  icon: Icons.wifi_off_rounded,
+                  message: "Sin conexión a internet",
+                  subMessage: "Por favor, verifica tu conexión.",
+                ),
+              );
             }
 
             if (!snapshot.hasData || snapshot.data!.isEmpty) {
-              return Center(
-                child: Text(
-                  "No hay datos disponibles.",
-                  style: GoogleFonts.manrope(
-                    fontSize: 18,
-                    color: Colors.redAccent,
-                  ),
+              return const Center(
+                child: SeaBotEmptyState(
+                  icon: Icons.people_outline_rounded,
+                  message: "No hay datos disponibles.",
+                  subMessage: "No se encontraron alumnos registrados.",
                 ),
               );
             }
@@ -505,26 +512,30 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
 
             final usuariosFiltrados = _filtrarUsuarios(resultadosData);
 
-            return Column(
-              children: [
-                _buildFiltrosUsuarios(
-                  total: resultadosData.length,
-                  activos: activos,
-                  inactivos: inactivos,
-                ),
-                Expanded(
-                  child: usuariosFiltrados.isEmpty
-                      ? _buildEmptyFilterState()
-                      : ListView.builder(
-                          itemCount: usuariosFiltrados.length,
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          itemBuilder: (context, index) {
-                            final usuario = usuariosFiltrados[index];
-                            return _buildUsuarioCard(usuario);
-                          },
-                        ),
-                ),
-              ],
+            return ResponsiveHelper.centeredConstraint(
+              context: context,
+              maxTabletWidth: 800,
+              child: Column(
+                children: [
+                  _buildFiltrosUsuarios(
+                    total: resultadosData.length,
+                    activos: activos,
+                    inactivos: inactivos,
+                  ),
+                  Expanded(
+                    child: usuariosFiltrados.isEmpty
+                        ? _buildEmptyFilterState()
+                        : ListView.builder(
+                            itemCount: usuariosFiltrados.length,
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            itemBuilder: (context, index) {
+                              final usuario = usuariosFiltrados[index];
+                              return _buildUsuarioCard(usuario);
+                            },
+                          ),
+                  ),
+                ],
+              ),
             );
           },
         ),

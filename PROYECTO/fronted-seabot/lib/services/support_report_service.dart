@@ -5,9 +5,10 @@ import 'package:seabot/models/support_email_otp_response.dart';
 import 'package:seabot/models/support_email_verify_response.dart';
 import 'package:seabot/models/support_report.dart';
 import 'package:http_parser/http_parser.dart';
+import 'package:seabot/core/app_api.dart';
 
 class SupportReportService {
-  final String baseUrl = "https://seabot-backend-993787742289.us-central1.run.app/supports";
+  final String baseUrl = "${AppCore.baseApiUrl}/supports";
 
   String _getErrorMessage(http.Response response) {
     try {

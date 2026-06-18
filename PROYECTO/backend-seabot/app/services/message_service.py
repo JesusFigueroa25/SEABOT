@@ -8,7 +8,7 @@ from app.models.emotionalRegister_model import EmotionalRegister
 from app.repositories import message_repository
 from app.schemas.message_schemas import MessageCreate, MessageUpdate, MessageInput, MessageOut
 from datetime import datetime
-from openai import OpenAI
+from openai import APIConnectionError, APIError, APITimeoutError, OpenAI
 from app.models.conversation_model import Conversation
 from app.models.summary_model import Summary
 from dotenv import load_dotenv
@@ -16,6 +16,7 @@ from google.cloud import language_v1
 from app.database.database import SessionLocal
 import time
 import os
+from app.utils.datetime_utils import now_lima_naive, to_lima_naive
 
 load_dotenv()
 
@@ -151,142 +152,153 @@ MAX_TURNOS_PER_CONVERSATION = 30
 
 
 def create_message(db: Session, obj: MessageInput, background_tasks: BackgroundTasks):
-    t0 = time.perf_counter()
-    total = message_repository.count_by_conversation(db, obj.conversation_id)
+    t_start = time.perf_counter()
+    try:
+        t0 = time.perf_counter()
+        total = message_repository.count_by_conversation(db, obj.conversation_id)
 
-    conv = db.query(Conversation).filter_by(id=obj.conversation_id).first()
-    if not conv:
-        raise HTTPException(status_code=404, detail="Conversación no encontrada")
+        conv = db.query(Conversation).filter_by(id=obj.conversation_id).first()
+        if not conv:
+            raise HTTPException(status_code=404, detail="Conversación no encontrada")
 
-    resumen = conv.conversation_summary or ""
-    student_id = conv.student_id
+        resumen = conv.conversation_summary or ""
+        student_id = conv.student_id
 
-    # Contexto
-    phq_last = (
-        db.query(PhqResult)
-        .filter(PhqResult.student_id == student_id)
-        .order_by(PhqResult.fecha.desc())
-        .first()
-    )
-
-    student = db.query(Student).filter(Student.id == student_id).first()
-    alias = student.alias if student and student.alias else "Usuario"
-
-    emotion_last = (
-        db.query(EmotionalRegister)
-        .filter(EmotionalRegister.student_id == student_id)
-        .order_by(EmotionalRegister.fecha_hora.desc())
-        .first()
-    )
-
-    ultimos = message_repository.get_last_messages(db, obj.conversation_id, limit=4)
-    last_sentiment_msg = (
-        db.query(Message)
-        .filter(
-            Message.conversation_id == obj.conversation_id,
-            Message.score.isnot(None)
+        # Contexto
+        phq_last = (
+            db.query(PhqResult)
+            .filter(PhqResult.student_id == student_id)
+            .order_by(PhqResult.fecha.desc())
+            .first()
         )
-        .order_by(Message.id.desc())
-        .first()
-    )
-    if last_sentiment_msg:
-        contexto_sentimiento = build_sentiment_context(
-            last_sentiment_msg.category,
-            last_sentiment_msg.magnitude 
+
+        student = db.query(Student).filter(Student.id == student_id).first()
+        alias = student.alias if student and student.alias else "Usuario"
+
+        emotion_last = (
+            db.query(EmotionalRegister)
+            .filter(EmotionalRegister.student_id == student_id)
+            .order_by(EmotionalRegister.fecha_hora.desc())
+            .first()
         )
-    else:
-        contexto_sentimiento = "Brinda acompañamiento emocional empático estándar."
 
-    contexto_compacto = f"""
-        {SYSTEM_PROMPT}
+        ultimos = message_repository.get_last_messages(db, obj.conversation_id, limit=4)
+        last_sentiment_msg = (
+            db.query(Message)
+            .filter(
+                Message.conversation_id == obj.conversation_id,
+                Message.score.isnot(None)
+            )
+            .order_by(Message.id.desc())
+            .first()
+        )
+        if last_sentiment_msg:
+            contexto_sentimiento = build_sentiment_context(
+                last_sentiment_msg.category,
+                last_sentiment_msg.magnitude 
+            )
+        else:
+            contexto_sentimiento = "Brinda acompañamiento emocional empático estándar."
 
-        Alias preferido del usuario: {alias}
-        PHQ-9 reciente: {phq_last.total_score if phq_last else 'sin registro'} | {phq_last.interpretation if phq_last else 'sin interpretación'}
-        Último registro emocional: {emotion_last.emotion if emotion_last else 'sin registro'}
+        contexto_compacto = f"""
+            {SYSTEM_PROMPT}
 
-        {contexto_sentimiento}
+            Alias preferido del usuario: {alias}
+            PHQ-9 reciente: {phq_last.total_score if phq_last else 'sin registro'} | {phq_last.interpretation if phq_last else 'sin interpretación'}
+            Último registro emocional: {emotion_last.emotion if emotion_last else 'sin registro'}
 
-        Usa esta información solo para ajustar el tono.
-        No menciones explícitamente que proviene de análisis o formularios.
-        """
+            {contexto_sentimiento}
 
-    input_for_response = [
-        {"role": "system", "content": contexto_compacto}
-    ]
+            Usa esta información solo para ajustar el tono.
+            No menciones explícitamente que proviene de análisis o formularios.
+            """
 
-    if resumen:
-        input_for_response.append({"role": "assistant", "content": f"Resumen previo: {resumen}"})
+        input_for_response = [
+            {"role": "system", "content": contexto_compacto}
+        ]
 
-    input_for_response.extend(
-        [{"role": m.role, "content": m.content} for m in ultimos]
-    )
-    input_for_response.append({"role": "user", "content": obj.content})
+        if resumen:
+            input_for_response.append({"role": "assistant", "content": f"Resumen previo: {resumen}"})
 
-    # Llamada principal
-    t2 = time.perf_counter()
-    response = clientGPT.responses.create(
-        model=os.getenv("FINE_TUNED_MODEL"),
-        input=input_for_response,
-        temperature=0.7,
-        max_output_tokens=130,
-        metadata={"conversation_id": str(obj.openai_id)}
-    )
-    output_text = response.output_text
+        input_for_response.extend(
+            [{"role": m.role, "content": m.content} for m in ultimos]
+        )
+        input_for_response.append({"role": "user", "content": obj.content})
 
-    output_text = response.output_text
-    now = datetime.utcnow()
+        t_context = time.perf_counter() - t0
+        print(f"[PERF] Non-stream context building time: {t_context:.4f}s (ConvID: {obj.conversation_id})", flush=True)
 
-    # Crear ambos mensajes sin commit intermedio
-    user_msg = Message(
-        conversation_id=obj.conversation_id,
-        role="user",
-        content=obj.content,
-        response_id=response.id,
-        fecha_hora=now,
-        score=None,
-        magnitude=None,
-        category=None
-    )
+        # Llamada principal
+        t2 = time.perf_counter()
+        response = clientGPT.chat.completions.create(
+            model=os.getenv("FINE_TUNED_MODEL"),
+            messages=input_for_response,
+            temperature=0.7,
+            max_tokens=130
+        )
+        output_text = response.choices[0].message.content or ""
+        t_openai = time.perf_counter() - t2
+        print(f"[PERF] Non-stream OpenAI API response time: {t_openai:.4f}s (ResponseID: {response.id})", flush=True)
 
-    bot_msg_db = Message(
-        conversation_id=obj.conversation_id,
-        role="assistant",
-        content=output_text,
-        response_id=response.id,
-        fecha_hora=now,
-        score=None,
-        magnitude=None,
-        category=None
-    )
-    
-    t3 = time.perf_counter()
-    db.add(user_msg)
-    db.add(bot_msg_db)
-    db.commit()
-    background_tasks.add_task(
-        analyze_and_update_sentiment,
-        user_msg.id,
-        obj.content
-    )
-    #db.refresh(bot_msg_db)
+        user_fecha_hora = to_lima_naive(obj.fecha_hora)
+        bot_fecha_hora = now_lima_naive()
 
-    # Tareas secundarias: se mantienen, pero ya no bloquean
-    if conv.openai_id:
+        # Crear ambos mensajes sin commit intermedio
+        user_msg = Message(
+            conversation_id=obj.conversation_id,
+            role="user",
+            content=obj.content,
+            response_id=response.id,
+            fecha_hora=user_fecha_hora,
+            score=None,
+            magnitude=None,
+            category=None
+        )
+
+        bot_msg_db = Message(
+            conversation_id=obj.conversation_id,
+            role="assistant",
+            content=output_text,
+            response_id=response.id,
+            fecha_hora=bot_fecha_hora,
+            score=None,
+            magnitude=None,
+            category=None
+        )
+        
+        t3 = time.perf_counter()
+        db.add(user_msg)
+        db.add(bot_msg_db)
+        db.commit()
+        t_db = time.perf_counter() - t3
+        print(f"[PERF] Non-stream Database commit time: {t_db:.4f}s (ConvID: {obj.conversation_id})", flush=True)
+
         background_tasks.add_task(
-            save_openai_conversation_items,
-            conv.openai_id,
-            obj.content,
-            output_text
+            analyze_and_update_sentiment,
+            user_msg.id,
+            obj.content
         )
 
-    new_total = total + 2
-    if new_total % 6 == 0:
-        background_tasks.add_task(
-            generate_and_save_summary,
-            obj.conversation_id
-        )
+        # Tareas secundarias: se mantienen, pero ya no bloquean
+        if conv.openai_id:
+            background_tasks.add_task(
+                save_openai_conversation_items,
+                conv.openai_id,
+                obj.content,
+                output_text
+            )
 
-    return MessageOut.model_validate(bot_msg_db)
+        new_total = total + 2
+        if new_total % 6 == 0:
+            background_tasks.add_task(
+                generate_and_save_summary,
+                obj.conversation_id
+            )
+
+        return MessageOut.model_validate(bot_msg_db)
+    finally:
+        t_total = time.perf_counter() - t_start
+        print(f"[PERF] Non-stream total execution time: {t_total:.4f}s (ConvID: {obj.conversation_id})", flush=True)
 
 def analyze_and_update_sentiment(user_message_id: int, text: str):
     db = SessionLocal()
@@ -422,7 +434,7 @@ def generate_and_save_summary(conversation_id: int):
             start_message_id=bloque[0].id,
             end_message_id=bloque[-1].id,
             resumen=resumen_txt,
-            fecha_hora=datetime.utcnow()
+            fecha_hora=now_lima_naive()
         )
 
         db.add(db_summary)
@@ -436,13 +448,186 @@ def generate_and_save_summary(conversation_id: int):
         
 #STREAMING
 
-def build_message_context(db: Session, obj: MessageInput):
-    total = message_repository.count_by_conversation(db, obj.conversation_id)
+def _log_stream_context_step(label: str, started_at: float, conversation_id: int) -> float:
+    now = time.perf_counter()
+    print(f"[PERF] Stream context {label}: {now - started_at:.4f}s (ConvID: {conversation_id})", flush=True)
+    return now
 
-    conv = db.query(Conversation).filter_by(id=obj.conversation_id).first()
-    if not conv:
+def _get_env_float(name: str, default: float) -> float:
+    raw_value = os.getenv(name)
+    if not raw_value:
+        return default
+
+    try:
+        value = float(raw_value)
+        if value <= 0:
+            raise ValueError
+        return value
+    except ValueError:
+        print(f"[WARN] Invalid {name}={raw_value!r}; using {default}", flush=True)
+        return default
+
+def _get_prompt_stats(messages: list[dict]) -> tuple[int, int]:
+    total_chars = 0
+    for message in messages:
+        content = message.get("content", "")
+        if isinstance(content, str):
+            total_chars += len(content)
+        elif isinstance(content, list):
+            total_chars += sum(len(str(item)) for item in content)
+        else:
+            total_chars += len(str(content))
+
+    return len(messages), total_chars
+
+def _create_chat_stream(model: str | None, messages: list[dict], timeout_seconds: float):
+    if not model:
+        raise ValueError("OpenAI model is not configured")
+
+    return clientGPT.with_options(
+        timeout=timeout_seconds,
+        max_retries=0,
+    ).chat.completions.create(
+        model=model,
+        messages=messages,
+        temperature=0.7,
+        max_tokens=130,
+        stream=True
+    )
+
+def _get_stream_delta(chunk) -> str:
+    return chunk.choices[0].delta.content if chunk.choices and chunk.choices[0].delta.content else ""
+
+def _iter_openai_stream_with_fallback(obj: MessageInput, messages: list[dict]):
+    primary_model = os.getenv("FINE_TUNED_MODEL")
+    fallback_model = os.getenv("OPENAI_STREAM_FALLBACK_MODEL")
+    primary_timeout = _get_env_float("OPENAI_STREAM_TIMEOUT_SECONDS", 20.0)
+    fallback_timeout = _get_env_float("OPENAI_STREAM_FALLBACK_TIMEOUT_SECONDS", primary_timeout)
+    prompt_message_count, prompt_total_chars = _get_prompt_stats(messages)
+    fallback_used = False
+    last_stream_error = None
+
+    print(
+        "[PERF] Stream OpenAI config: "
+        f"primary_model={primary_model or 'not_configured'} "
+        f"fallback_model={fallback_model or 'not_configured'} "
+        f"primary_timeout={primary_timeout:.2f}s "
+        f"fallback_timeout={fallback_timeout:.2f}s "
+        f"prompt_messages={prompt_message_count} "
+        f"prompt_chars={prompt_total_chars} "
+        f"(ConvID: {obj.conversation_id})",
+        flush=True
+    )
+
+    attempts = [(primary_model, primary_timeout, False)]
+    if fallback_model:
+        attempts.append((fallback_model, fallback_timeout, True))
+
+    for model_name, timeout_seconds, is_fallback in attempts:
+        emitted_content_chunk = False
+
+        if is_fallback:
+            fallback_used = True
+
+        try:
+            print(
+                "[PERF] Stream OpenAI attempt: "
+                f"model={model_name or 'not_configured'} "
+                f"timeout={timeout_seconds:.2f}s "
+                f"fallback={is_fallback} "
+                f"(ConvID: {obj.conversation_id})",
+                flush=True
+            )
+
+            stream = _create_chat_stream(model_name, messages, timeout_seconds)
+
+            for chunk in stream:
+                if not _get_stream_delta(chunk):
+                    continue
+
+                if not emitted_content_chunk:
+                    print(
+                        "[PERF] Stream OpenAI first content source: "
+                        f"model={model_name} "
+                        f"fallback_used={fallback_used} "
+                        f"(ConvID: {obj.conversation_id})",
+                        flush=True
+                    )
+
+                emitted_content_chunk = True
+                yield chunk
+
+            if emitted_content_chunk:
+                print(
+                    f"[PERF] Stream OpenAI fallback_used={fallback_used} "
+                    f"(ConvID: {obj.conversation_id})",
+                    flush=True
+                )
+                return
+
+            raise Exception("Respuesta vacia desde OpenAI")
+
+        except (APITimeoutError, APIConnectionError, APIError) as e:
+            last_stream_error = e
+            print(
+                "[ERROR] [PERF] Stream OpenAI API error: "
+                f"{type(e).__name__}: {e} "
+                f"(Model: {model_name}, Fallback: {is_fallback}, "
+                f"EmittedChunk: {emitted_content_chunk}, ConvID: {obj.conversation_id})",
+                flush=True
+            )
+        except Exception as e:
+            last_stream_error = e
+            print(
+                "[ERROR] [PERF] Stream OpenAI error: "
+                f"{type(e).__name__}: {e} "
+                f"(Model: {model_name}, Fallback: {is_fallback}, "
+                f"EmittedChunk: {emitted_content_chunk}, ConvID: {obj.conversation_id})",
+                flush=True
+            )
+
+        if emitted_content_chunk:
+            print(
+                f"[PERF] Stream OpenAI fallback_used={fallback_used} "
+                f"(Skipped fallback after partial stream, ConvID: {obj.conversation_id})",
+                flush=True
+            )
+            raise last_stream_error
+
+        if is_fallback or not fallback_model:
+            print(
+                f"[PERF] Stream OpenAI fallback_used={fallback_used} "
+                f"(ConvID: {obj.conversation_id})",
+                flush=True
+            )
+            raise last_stream_error
+
+        print(
+            f"[PERF] Stream OpenAI switching to fallback model "
+            f"(ConvID: {obj.conversation_id})",
+            flush=True
+        )
+
+    if last_stream_error:
+        raise last_stream_error
+
+    raise Exception("No se pudo generar la respuesta desde OpenAI")
+
+def build_message_context(db: Session, obj: MessageInput):
+    t_context_start = time.perf_counter()
+    t_step = t_context_start
+
+    conv_with_student = (
+        db.query(Conversation, Student)
+        .outerjoin(Student, Conversation.student_id == Student.id)
+        .filter(Conversation.id == obj.conversation_id)
+        .first()
+    )
+    t_step = _log_stream_context_step("conversation + student query", t_step, obj.conversation_id)
+    if not conv_with_student:
         raise HTTPException(status_code=404, detail="Conversación no encontrada")
 
+    conv, student = conv_with_student
     resumen = conv.conversation_summary or ""
     student_id = conv.student_id
 
@@ -452,8 +637,8 @@ def build_message_context(db: Session, obj: MessageInput):
         .order_by(PhqResult.fecha.desc())
         .first()
     )
+    t_step = _log_stream_context_step("latest PHQ query", t_step, obj.conversation_id)
 
-    student = db.query(Student).filter(Student.id == student_id).first()
     alias = student.alias if student and student.alias else "Usuario"
 
     emotion_last = (
@@ -462,10 +647,12 @@ def build_message_context(db: Session, obj: MessageInput):
         .order_by(EmotionalRegister.fecha_hora.desc())
         .first()
     )
+    t_step = _log_stream_context_step("latest emotion query", t_step, obj.conversation_id)
 
     ultimos = message_repository.get_last_messages(
         db, obj.conversation_id, limit=2
     )
+    t_step = _log_stream_context_step("latest messages query", t_step, obj.conversation_id)
 
     last_sentiment_msg = (
         db.query(Message)
@@ -476,6 +663,7 @@ def build_message_context(db: Session, obj: MessageInput):
         .order_by(Message.id.desc())
         .first()
     )
+    t_step = _log_stream_context_step("latest sentiment query", t_step, obj.conversation_id)
 
     if last_sentiment_msg:
         contexto_sentimiento = build_sentiment_context(
@@ -517,40 +705,44 @@ def build_message_context(db: Session, obj: MessageInput):
         "content": obj.content
     })
 
-    return conv, total, input_for_response
+    _log_stream_context_step("total prompt assembly", t_context_start, obj.conversation_id)
+
+    return conv, input_for_response
 
 def create_message_stream(db: Session, obj: MessageInput, background_tasks: BackgroundTasks):
-    conv, total, input_for_response = build_message_context(db, obj)
+    t_start = time.perf_counter()
+    conv, input_for_response = build_message_context(db, obj)
     conversation_openai_id = conv.openai_id
+    t_context = time.perf_counter() - t_start
+    print(f"[PERF] Stream context building time: {t_context:.4f}s (ConvID: {obj.conversation_id})", flush=True)
 
     def stream_generator():
+        t_stream_start = time.perf_counter()
+        t_first_token = None
         output_text = ""
         response_id = None
-        now = datetime.utcnow()
+        user_fecha_hora = to_lima_naive(obj.fecha_hora)
 
         try:
-            stream = clientGPT.responses.create(
-                model=os.getenv("FINE_TUNED_MODEL"),
-                input=input_for_response,
-                temperature=0.7,
-                max_output_tokens=130,
-                metadata={"conversation_id": str(obj.openai_id)},
-                stream=True
-            )
+            stream = _iter_openai_stream_with_fallback(obj, input_for_response)
 
-            for event in stream:
-                if event.type == "response.created":
-                    response_id = event.response.id
+            for chunk in stream:
+                if chunk.id and response_id is None:
+                    response_id = chunk.id
 
-                elif event.type == "response.output_text.delta":
-                    delta = event.delta or ""
+                delta = _get_stream_delta(chunk)
+                if delta:
+                    if t_first_token is None:
+                        t_first_token = time.perf_counter() - t_stream_start
+                        print(f"[PERF] Stream OpenAI Time-to-First-Token (TTFT): {t_first_token:.4f}s (ConvID: {obj.conversation_id})", flush=True)
                     output_text += delta
                     yield delta.encode("utf-8")
 
             if not output_text.strip():
                 raise Exception("Respuesta vacía desde OpenAI")
             
-            # 🔍 DEBUG AQUÍ
+            # Guardado en base de datos
+            t_db_start = time.perf_counter()
             db_stream = SessionLocal()
             try:
                 user_msg = Message(
@@ -558,7 +750,7 @@ def create_message_stream(db: Session, obj: MessageInput, background_tasks: Back
                     role="user",
                     content=obj.content,
                     response_id=response_id or "",
-                    fecha_hora=now,
+                    fecha_hora=user_fecha_hora,
                     score=None,
                     magnitude=None,
                     category=None
@@ -569,7 +761,7 @@ def create_message_stream(db: Session, obj: MessageInput, background_tasks: Back
                     role="assistant",
                     content=output_text.strip(),
                     response_id=response_id or "",
-                    fecha_hora=now,
+                    fecha_hora=now_lima_naive(),
                     score=None,
                     magnitude=None,
                     category=None
@@ -579,6 +771,9 @@ def create_message_stream(db: Session, obj: MessageInput, background_tasks: Back
                 db_stream.add(bot_msg_db)
                 db_stream.commit()
                 db_stream.refresh(user_msg)
+                
+                t_db_commit = time.perf_counter() - t_db_start
+                print(f"[PERF] Stream Database commit time: {t_db_commit:.4f}s (ConvID: {obj.conversation_id})", flush=True)
 
                 background_tasks.add_task(
                     analyze_and_update_sentiment,
@@ -594,7 +789,9 @@ def create_message_stream(db: Session, obj: MessageInput, background_tasks: Back
                         output_text.strip()
                     )
 
-                new_total = total + 2
+                t_summary_count_start = time.perf_counter()
+                new_total = message_repository.count_by_conversation(db_stream, obj.conversation_id)
+                print(f"[PERF] Stream summary count time: {time.perf_counter() - t_summary_count_start:.4f}s (ConvID: {obj.conversation_id})", flush=True)
                 if new_total % 6 == 0:
                     background_tasks.add_task(
                         generate_and_save_summary,
@@ -603,14 +800,15 @@ def create_message_stream(db: Session, obj: MessageInput, background_tasks: Back
 
             except Exception as e:
                 db_stream.rollback()
+                print(f"[ERROR] [PERF] Error committing messages to DB: {e}", flush=True)
             finally:
                 db_stream.close()
 
         except Exception as e:
+            print(f"[ERROR] [PERF] Stream error: {e}", flush=True)
             yield "\n[ERROR_STREAM] No se pudo generar la respuesta."
+        finally:
+            t_stream_total = time.perf_counter() - t_stream_start
+            print(f"[PERF] Stream total execution time (OpenAI + Stream): {t_stream_total:.4f}s (ConvID: {obj.conversation_id})", flush=True)
 
     return stream_generator()
-
-
-
-

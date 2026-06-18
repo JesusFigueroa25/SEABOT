@@ -25,9 +25,11 @@ class MessageRepository {
       'messages',
       where: 'conversation_id = ?',
       whereArgs: [conversationId],
-      orderBy: 'fecha_hora ASC',
+      orderBy: '''
+    CASE WHEN id < 0 THEN 1 ELSE 0 END ASC,
+    CASE WHEN id < 0 THEN -id ELSE id END ASC
+  ''',
     );
-
     print("📦 Mensajes locales encontrados: ${localData.length}");
 
     return localData.map((e) {
@@ -54,6 +56,9 @@ class MessageRepository {
       final remoteMessages = await apiService.getMessageByConversation(
         conversationId,
       );
+
+      // Ordenamos los mensajes remotos por ID antes de guardarlos y retornarlos.
+      remoteMessages.sort((a, b) => a.id.compareTo(b.id));
 
       await db.delete(
         'messages',

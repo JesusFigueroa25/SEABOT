@@ -1,9 +1,11 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/conversation.dart';
+import 'package:seabot/core/app_api.dart';
+
 
 class ConversationService {
-  final String baseUrl = "https://seabot-backend-993787742289.us-central1.run.app/conversations";
+  final String baseUrl = "${AppCore.baseApiUrl}/conversations";
 
   Future<List<Conversation>> getAllConversations() async {
     final response = await http.get(Uri.parse("$baseUrl/"));

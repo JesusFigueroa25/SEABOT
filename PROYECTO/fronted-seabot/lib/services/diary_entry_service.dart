@@ -1,9 +1,10 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/diary_entry.dart';
+import 'package:seabot/core/app_api.dart';
 
 class DiaryEntryService {
-  final String baseUrl = "https://seabot-backend-993787742289.us-central1.run.app/diaryentries";
+  final String baseUrl = "${AppCore.baseApiUrl}/diaryentries";
 
   // POST create
   Future<void> createEntry(Map<String, dynamic> body) async {

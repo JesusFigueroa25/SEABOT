@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from app.models.summary_model import Summary
 from app.schemas.summary_schemas import SummaryCreate, SummaryUpdate
-#Cambiar de clase "schema"
+from app.utils.datetime_utils import to_lima_naive
 
 def create(db: Session, objeto: SummaryCreate):
     #Colocar todos los atributos correctos
@@ -9,19 +9,13 @@ def create(db: Session, objeto: SummaryCreate):
         start_message_id=objeto.start_message_id, 
         end_message_id=objeto.end_message_id, 
         resumen=objeto.resumen, 
-        fecha_hora=objeto.fecha_hora,
+        fecha_hora=to_lima_naive(objeto.fecha_hora),
         conversation_id=objeto.conversation_id,
     )
     db.add(db_object)
     db.commit()
     db.refresh(db_object)
     return db_object
-
-def get(db: Session):
-    return db.query(Summary).all()
-
-def get_by_id(db: Session, object_id: int):
-    return db.query(Summary).filter(Summary.id == object_id).first()
 
 def update(db: Session, object_id: int, objeto: SummaryUpdate):
     db_object = get_by_id(db, object_id)
@@ -30,10 +24,16 @@ def update(db: Session, object_id: int, objeto: SummaryUpdate):
         db_object.start_message_id = objeto.start_message_id
         db_object.end_message_id = objeto.end_message_id
         db_object.resumen = objeto.resumen
-        db_object.fecha_hora = objeto.fecha_hora
+        db_object.fecha_hora = to_lima_naive(objeto.fecha_hora)
         db.commit()
         db.refresh(db_object)
     return db_object
+
+def get(db: Session):
+    return db.query(Summary).all()
+
+def get_by_id(db: Session, object_id: int):
+    return db.query(Summary).filter(Summary.id == object_id).first()
 
 def delete(db: Session, object_id: int):
     db_object = get_by_id(db, object_id)

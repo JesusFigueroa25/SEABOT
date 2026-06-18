@@ -6,3 +6,6 @@ __pycache__/
 *.pyc
 venv/
 .venv/
+
+# Local frontend API config
+PROYECTO/fronted-seabot/lib/core/app_api.dart

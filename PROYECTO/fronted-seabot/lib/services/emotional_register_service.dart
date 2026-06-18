@@ -1,9 +1,10 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/emotional_register.dart';
+import 'package:seabot/core/app_api.dart';
 
 class EmotionalRegisterService {
-  final String baseUrl = "https://seabot-backend-993787742289.us-central1.run.app/emotionalregisters";
+  final String baseUrl = "${AppCore.baseApiUrl}/emotionalregisters";
 
 
   Future<void> createRegister(Map<String, dynamic> body) async {

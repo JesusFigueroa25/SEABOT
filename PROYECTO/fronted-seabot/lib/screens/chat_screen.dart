@@ -1,12 +1,13 @@
-import 'dart:io';
 import 'dart:ui';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:seabot/core/app_colors.dart';
+import 'package:seabot/core/responsive_helper.dart';
 import 'package:seabot/models/message.dart';
 import 'package:seabot/repositories/messages_repository.dart';
+import 'package:seabot/screens/widgets/seabot_widgets.dart';
 import 'package:seabot/services/message_service.dart';
 import 'dart:async';
 
@@ -50,8 +51,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
     _scrollController.addListener(() {
       if (!_scrollController.hasClients) return;
-      final shouldShow =
-          _distanceFromBottom() > _scrollToBottomThreshold;
+      final shouldShow = _distanceFromBottom() > _scrollToBottomThreshold;
 
       if (mounted && shouldShow != _showScrollToBottom) {
         setState(() => _showScrollToBottom = shouldShow);
@@ -125,47 +125,14 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<bool> _hasInternet() async {
-    var connectivityResult = await Connectivity().checkConnectivity();
-    if (connectivityResult == ConnectivityResult.none) return false;
-    try {
-      final result = await InternetAddress.lookup(
-        'example.com',
-      ).timeout(const Duration(seconds: 3));
-      return result.isNotEmpty && result[0].rawAddress.isNotEmpty;
-    } catch (_) {
-      return false;
-    }
+    final connectivityResult = await Connectivity().checkConnectivity();
+    return connectivityResult.isNotEmpty &&
+        !connectivityResult.contains(ConnectivityResult.none);
   }
 
   Future<void> _onSendPressed() async {
     if (_sendingMessage) return;
 
-    final connected = await _hasInternet();
-    if (!connected) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            "📵 No tienes conexión a internet",
-            style: GoogleFonts.manrope(
-              color: Colors.white,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          backgroundColor: Colors.redAccent,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-          ),
-        ),
-      );
-      return;
-    }
-
-    await _sendMessage();
-  }
-
-  Future<void> _sendMessage() async {
     final text = _controller.text.trim();
 
     if (text.isEmpty) {
@@ -208,16 +175,8 @@ class _ChatScreenState extends State<ChatScreen> {
       return;
     }
 
+    // 1. Mostrar el mensaje del usuario inmediatamente y limpiar el input al instante
     final ahora = DateTime.now().toUtc();
-    final inputResponse = {
-      "role": "user",
-      "content": text,
-      "conversation_id": widget.conversationId,
-      "openai_id": widget.openaiId,
-      "fecha_hora": ahora.toIso8601String(),
-      "response_id": "",
-    };
-
     final tempUserId = DateTime.now().millisecondsSinceEpoch * -1;
     final localMessage = Message(
       id: tempUserId,
@@ -234,10 +193,68 @@ class _ChatScreenState extends State<ChatScreen> {
       _botTyping = true;
       _loadingInitialMessages = false;
     });
-    await repository.saveLocalMessage(localMessage);
-    await repository.markConversationPending(widget.conversationId, true);
 
     _scrollToBottom(animated: true);
+
+    // 2. Verificar internet de forma no bloqueante antes de enviar al API
+    final connected = await _hasInternet();
+    if (!connected) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            "📵 No tienes conexión a internet",
+            style: GoogleFonts.manrope(
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+        ),
+      );
+
+      // Revertir el mensaje local no enviado, restaurar el texto en el input y liberar
+      setState(() {
+        _localMessages.removeWhere((m) => m.id == tempUserId);
+        _sendingMessage = false;
+        _botTyping = false;
+        _controller.text = text;
+      });
+      return;
+    }
+
+    // 3. Continuar con el envío al servidor
+    await _sendMessage(text, tempUserId, ahora);
+  }
+
+  Future<void> _sendMessage(String text, int tempUserId, DateTime ahora) async {
+    final inputResponse = {
+      "role": "user",
+      "content": text,
+      "conversation_id": widget.conversationId,
+      "openai_id": widget.openaiId,
+      "fecha_hora": ahora.toIso8601String(),
+      "response_id": "",
+    };
+
+    try {
+      await repository.saveLocalMessage(
+        Message(
+          id: tempUserId,
+          role: "user",
+          content: text,
+          fechaHora: ahora,
+          conversationID: widget.conversationId,
+        ),
+      );
+      await repository.markConversationPending(widget.conversationId, true);
+    } catch (e) {
+      print("Error al guardar mensaje local: $e");
+    }
 
     int? tempBotId;
     DateTime? botMessageDate;
@@ -261,10 +278,10 @@ class _ChatScreenState extends State<ChatScreen> {
 
         if (tempBotId != null && botMessageDate != null) {
           _replaceLocalMessageContent(
-            id: tempBotId!,
+            id: tempBotId,
             role: "assistant",
             content: streamedText,
-            fechaHora: botMessageDate!,
+            fechaHora: botMessageDate,
           );
         }
       });
@@ -279,10 +296,10 @@ class _ChatScreenState extends State<ChatScreen> {
       botMessageDate = DateTime.now().toUtc();
 
       final botLocalMessage = Message(
-        id: tempBotId!,
+        id: tempBotId,
         role: "assistant",
         content: "",
-        fechaHora: botMessageDate!,
+        fechaHora: botMessageDate,
         conversationID: widget.conversationId,
       );
 
@@ -298,9 +315,21 @@ class _ChatScreenState extends State<ChatScreen> {
         _scrollToBottom(animated: false, settle: false);
       }
 
+      final streamWatch = Stopwatch()..start();
+      bool firstChunkLogged = false;
+
+      debugPrint("[PERF][CHAT] Stream request started");
+
       await for (final chunk in serviceController.createMessageStream(
-        inputResponse,
+        inputResponse, 
       )) {
+        if (!firstChunkLogged) {
+          firstChunkLogged = true;
+          debugPrint(
+            "[PERF][CHAT] First chunk received in ${streamWatch.elapsedMilliseconds}ms",
+          );
+        }
+
         if (!mounted) return;
 
         if (chunk.contains("[ERROR_STREAM]")) {
@@ -312,30 +341,47 @@ class _ChatScreenState extends State<ChatScreen> {
         flushStreamedText();
       }
 
-      flushStreamedText(force: true);
-
-      await Future.delayed(const Duration(milliseconds: 300));
-
-      final syncedMessages = await repository.fetchAndSyncMessages(
-        widget.conversationId,
-        true,
+      debugPrint(
+        "[PERF][CHAT] Stream finished in ${streamWatch.elapsedMilliseconds}ms",
       );
 
-      await repository.markConversationPending(widget.conversationId, false);
+      flushStreamedText(force: true);
 
-      if (!mounted) return;
-
-      setState(() {
-        resultados = Future.value(syncedMessages);
-        _localMessages.clear();
-        _sendingMessage = false;
-        _botTyping = false;
-        _loadingInitialMessages = false;
-      });
-
+      // Liberar _sendingMessage apenas termine la respuesta visible del bot
       if (mounted) {
-        _scrollToBottom(animated: true);
+        setState(() {
+          _sendingMessage = false;
+          _botTyping = false;
+          _loadingInitialMessages = false;
+        });
+
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _scrollToBottom(animated: true);
+        });
       }
+
+      // Ejecutar repository.fetchAndSyncMessages(...) en background sin bloquear la UI
+      repository
+          .fetchAndSyncMessages(widget.conversationId, true)
+          .then((syncedMessages) {
+            if (!mounted) return;
+
+            setState(() {
+              resultados = Future.value(_sortMessagesAsc(syncedMessages));
+              _localMessages.removeWhere(
+                (m) => m.id == tempUserId || m.id == tempBotId,
+              );
+            });
+
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              _scrollToBottom(animated: false);
+            });
+          })
+          .catchError((e) {
+            print("Error al sincronizar mensajes: $e");
+          });
+
+      await repository.markConversationPending(widget.conversationId, false);
     } catch (e) {
       await repository.markConversationPending(widget.conversationId, false);
 
@@ -343,10 +389,15 @@ class _ChatScreenState extends State<ChatScreen> {
 
       setState(() {
         _botTyping = false;
+        _sendingMessage = false;
         if (tempBotId != null) {
-          _removeEmptyLocalMessage(tempBotId!);
+          _removeEmptyLocalMessage(tempBotId);
         }
+        _localMessages.removeWhere(
+          (m) => m.id == tempUserId || (tempBotId != null && m.id == tempBotId),
+        );
         _loadingInitialMessages = false;
+        _controller.text = text; // Restaurar el texto original en caso de error
       });
 
       final errorText = e.toString().toLowerCase();
@@ -382,10 +433,6 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
         ),
       );
-    } finally {
-      if (mounted) {
-        setState(() => _sendingMessage = false);
-      }
     }
   }
 
@@ -398,6 +445,33 @@ class _ChatScreenState extends State<ChatScreen> {
   bool _isNearBottom({double threshold = 140}) {
     if (!_scrollController.hasClients) return true;
     return _distanceFromBottom() <= threshold;
+  }
+
+  List<Message> _sortMessagesAsc(List<Message> messages) {
+    final sorted = [...messages];
+
+    sorted.sort((a, b) {
+      final aIsTemp = a.id < 0;
+      final bIsTemp = b.id < 0;
+
+      // Los mensajes reales del backend van primero.
+      if (aIsTemp && !bIsTemp) return 1;
+      if (!aIsTemp && bIsTemp) return -1;
+
+      // Si ambos son temporales, se ordenan por fecha para evitar invertir user/bot.
+      if (aIsTemp && bIsTemp) {
+        final dateCompare = a.fechaHora.compareTo(b.fechaHora);
+        if (dateCompare != 0) return dateCompare;
+
+        // Como respaldo, en temporales negativos usamos DESC.
+        return b.id.compareTo(a.id);
+      }
+
+      // Si ambos son reales, orden normal por id ASC.
+      return a.id.compareTo(b.id);
+    });
+
+    return sorted;
   }
 
   void _replaceLocalMessageContent({
@@ -620,330 +694,468 @@ class _ChatScreenState extends State<ChatScreen> {
                 children: [
                   _buildHeader(),
                   Expanded(
-                    child: FutureBuilder<List<Message>>(
-                      future: resultados,
-                      builder: (context, snapshot) {
-                        List<Message> mensajesBackend = [];
-                        if (snapshot.connectionState == ConnectionState.done &&
-                            snapshot.hasData) {
-                          mensajesBackend = snapshot.data!;
-                        }
+                    child: ResponsiveHelper.centeredConstraint(
+                      context: context,
+                      maxTabletWidth: 800,
+                      child: FutureBuilder<List<Message>>(
+                        future: resultados,
+                        builder: (context, snapshot) {
+                          List<Message> mensajesBackend = [];
+                          if (snapshot.connectionState ==
+                                  ConnectionState.done &&
+                              snapshot.hasData) {
+                            mensajesBackend = snapshot.data!;
+                          }
 
-                        if (!_initialScrollDone && mensajesBackend.isNotEmpty) {
-                          _initialScrollDone = true;
+                          if (!_initialScrollDone &&
+                              mensajesBackend.isNotEmpty) {
+                            _initialScrollDone = true;
 
-                          WidgetsBinding.instance.addPostFrameCallback((
-                            _,
-                          ) async {
-                            await Future.delayed(
-                              const Duration(milliseconds: 500),
+                            WidgetsBinding.instance.addPostFrameCallback((
+                              _,
+                            ) async {
+                              await Future.delayed(
+                                const Duration(milliseconds: 500),
+                              );
+
+                              if (!_scrollController.hasClients) return;
+
+                              _scrollController.jumpTo(
+                                _scrollController.position.maxScrollExtent,
+                              );
+                            });
+                          }
+
+                          final allMessages = _sortMessagesAsc([
+                            ...mensajesBackend,
+                            ..._localMessages,
+                          ]);
+                          final totalCount =
+                              allMessages.length + (_botTyping ? 1 : 0);
+
+                          if (snapshot.connectionState ==
+                                  ConnectionState.waiting &&
+                              allMessages.isEmpty) {
+                            return const Center(
+                              child: CircularProgressIndicator(),
                             );
+                          }
 
-                            if (!_scrollController.hasClients) return;
-
-                            _scrollController.jumpTo(
-                              _scrollController.position.maxScrollExtent,
-                            );
-                          });
-                        }
-
-                        final allMessages = [
-                          ...mensajesBackend,
-                          ..._localMessages,
-                        ];
-                        final totalCount =
-                            allMessages.length + (_botTyping ? 1 : 0);
-
-                        if (snapshot.connectionState ==
-                                ConnectionState.waiting &&
-                            allMessages.isEmpty) {
-                          return const Center(
-                            child: CircularProgressIndicator(),
-                          );
-                        }
-
-                        if (snapshot.hasError) {
-                          return Center(
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 24,
-                              ),
-                              child: Container(
-                                width: double.infinity,
-                                padding: const EdgeInsets.all(24),
-                                decoration: BoxDecoration(
-                                  color: isDark
-                                      ? const Color(0xFF171C24)
-                                      : Colors.white.withOpacity(0.95),
-                                  borderRadius: BorderRadius.circular(28),
+                          if (snapshot.hasError) {
+                            return Center(
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 24,
                                 ),
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Icon(
-                                      Icons.error_outline_rounded,
-                                      color: Colors.redAccent,
-                                      size: 42,
-                                    ),
-                                    const SizedBox(height: 12),
-                                    Text(
-                                      "Error al cargar mensajes",
-                                      textAlign: TextAlign.center,
-                                      style: GoogleFonts.manrope(
-                                        fontSize: 17,
-                                        fontWeight: FontWeight.w800,
-                                        color: isDark
-                                            ? Colors.white
-                                            : const Color(0xFF18202A),
+                                child: Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.all(24),
+                                  decoration: BoxDecoration(
+                                    color: isDark
+                                        ? const Color(0xFF171C24)
+                                        : Colors.white.withOpacity(0.95),
+                                    borderRadius: BorderRadius.circular(28),
+                                  ),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(
+                                        Icons.error_outline_rounded,
+                                        color: Colors.redAccent,
+                                        size: 42,
                                       ),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      "${snapshot.error}",
-                                      textAlign: TextAlign.center,
-                                      style: GoogleFonts.manrope(
-                                        fontSize: 14,
-                                        color: isDark
-                                            ? Colors.white70
-                                            : Colors.black54,
+                                      const SizedBox(height: 12),
+                                      Text(
+                                        "Error al cargar mensajes",
+                                        textAlign: TextAlign.center,
+                                        style: GoogleFonts.manrope(
+                                          fontSize: 17,
+                                          fontWeight: FontWeight.w800,
+                                          color: isDark
+                                              ? Colors.white
+                                              : const Color(0xFF18202A),
+                                        ),
                                       ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        "${snapshot.error}",
+                                        textAlign: TextAlign.center,
+                                        style: GoogleFonts.manrope(
+                                          fontSize: 14,
+                                          color: isDark
+                                              ? Colors.white70
+                                              : Colors.black54,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            );
+                          }
+                          if (_loadingInitialMessages) {
+                            return const Center(
+                              child: CircularProgressIndicator(),
+                            );
+                          }
+
+                          if (allMessages.isEmpty && !_botTyping) {
+                            return _buildEmptyState(isDark);
+                          }
+
+                          return ListView.builder(
+                            controller: _scrollController,
+                            physics: const ClampingScrollPhysics(),
+                            padding: const EdgeInsets.fromLTRB(14, 18, 14, 90),
+                            itemCount: totalCount,
+                            itemBuilder: (context, index) {
+                              if (_botTyping && index == allMessages.length) {
+                                return Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 3,
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Container(
+                                        width: 30,
+                                        height: 30,
+                                        margin: const EdgeInsets.only(
+                                          top: 4,
+                                          right: 2,
+                                        ),
+                                        padding: const EdgeInsets.all(4),
+                                        decoration: BoxDecoration(
+                                          color: isDark
+                                              ? const Color(0xFF1E2430)
+                                              : Colors.white,
+                                          shape: BoxShape.circle,
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Colors.black.withOpacity(
+                                                0.05,
+                                              ),
+                                              blurRadius: 4,
+                                              offset: const Offset(0, 2),
+                                            ),
+                                          ],
+                                          border: Border.all(
+                                            color: isDark
+                                                ? Colors.white10
+                                                : Colors.black.withOpacity(
+                                                    0.05,
+                                                  ),
+                                          ),
+                                        ),
+                                        child: ClipOval(
+                                          child: Image.asset(
+                                            "assets/images/SeaBot.png",
+                                            fit: BoxFit.contain,
+                                            errorBuilder: (_, __, ___) =>
+                                                const Icon(
+                                                  Icons
+                                                      .face_retouching_natural_rounded,
+                                                  size: 16,
+                                                  color: AppColors.secundary,
+                                                ),
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      _buildTypingBubble(botBubble, isDark),
+                                    ],
+                                  ),
+                                );
+                              }
+
+                              final message = allMessages[index];
+                              final isUser = message.role == "user";
+                              final bubbleColor = isUser
+                                  ? userBubble
+                                  : botBubble;
+                              final textColor = isUser
+                                  ? AppColors.black
+                                  : (isDark ? Colors.white : AppColors.black);
+                              final screenWidth = MediaQuery.sizeOf(
+                                context,
+                              ).width;
+                              final bubbleMaxWidth = ((screenWidth - 28) * 0.82)
+                                  .clamp(220.0, 560.0)
+                                  .toDouble();
+
+                              return GestureDetector(
+                                onLongPress: () async =>
+                                    await _copyMessage(message.content),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 3,
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment: isUser
+                                        ? MainAxisAlignment.end
+                                        : MainAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      if (!isUser) ...[
+                                        Container(
+                                          width: 30,
+                                          height: 30,
+                                          margin: const EdgeInsets.only(
+                                            top: 4,
+                                            right: 2,
+                                          ),
+                                          padding: const EdgeInsets.all(4),
+                                          decoration: BoxDecoration(
+                                            color: isDark
+                                                ? const Color(0xFF1E2430)
+                                                : Colors.white,
+                                            shape: BoxShape.circle,
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: Colors.black.withOpacity(
+                                                  0.05,
+                                                ),
+                                                blurRadius: 4,
+                                                offset: const Offset(0, 2),
+                                              ),
+                                            ],
+                                            border: Border.all(
+                                              color: isDark
+                                                  ? Colors.white10
+                                                  : Colors.black.withOpacity(
+                                                      0.05,
+                                                    ),
+                                            ),
+                                          ),
+                                          child: ClipOval(
+                                            child: Image.asset(
+                                              "assets/images/SeaBot.png",
+                                              fit: BoxFit.contain,
+                                              errorBuilder: (_, __, ___) =>
+                                                  const Icon(
+                                                    Icons
+                                                        .face_retouching_natural_rounded,
+                                                    size: 16,
+                                                    color: AppColors.secundary,
+                                                  ),
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 6),
+                                      ],
+                                      ConstrainedBox(
+                                        constraints: BoxConstraints(
+                                          maxWidth: bubbleMaxWidth,
+                                        ),
+                                        child: Container(
+                                          padding: const EdgeInsets.fromLTRB(
+                                            16,
+                                            14,
+                                            16,
+                                            10,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: bubbleColor,
+                                            borderRadius: BorderRadius.only(
+                                              topLeft: const Radius.circular(
+                                                22,
+                                              ),
+                                              topRight: const Radius.circular(
+                                                22,
+                                              ),
+                                              bottomLeft: isUser
+                                                  ? const Radius.circular(22)
+                                                  : const Radius.circular(6),
+                                              bottomRight: isUser
+                                                  ? const Radius.circular(6)
+                                                  : const Radius.circular(22),
+                                            ),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: Colors.black.withOpacity(
+                                                  isDark ? 0.14 : 0.04,
+                                                ),
+                                                blurRadius: 10,
+                                                offset: const Offset(0, 4),
+                                              ),
+                                            ],
+                                          ),
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Text(
+                                                message.content,
+                                                style: GoogleFonts.manrope(
+                                                  color: textColor,
+                                                  fontSize: 15.2,
+                                                  height: 1.45,
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Align(
+                                                alignment:
+                                                    Alignment.bottomRight,
+                                                child: Text(
+                                                  // ignore: unnecessary_null_comparison, dead_code
+                                                  "${message.fechaHora.toLocal().hour.toString().padLeft(2, '0')}:${message.fechaHora.toLocal().minute.toString().padLeft(2, '0')}",
+                                                  style: GoogleFonts.manrope(
+                                                    fontSize: 10.5,
+                                                    color: isUser
+                                                        ? Colors.black54
+                                                        : (isDark
+                                                              ? Colors.white38
+                                                              : Colors.black38),
+                                                    fontWeight: FontWeight.w500,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                  ResponsiveHelper.centeredConstraint(
+                    context: context,
+                    maxTabletWidth: 800,
+                    child: SafeArea(
+                      top: false,
+                      minimum: const EdgeInsets.only(bottom: 4),
+                      child: Padding(
+                        padding: EdgeInsets.only(
+                          left: 12,
+                          right: 12,
+                          top: 6,
+                          bottom: MediaQuery.of(context).viewInsets.bottom > 0
+                              ? 4
+                              : MediaQuery.of(context).padding.bottom + 6,
+                        ),
+                        child: Container(
+                          padding: const EdgeInsets.fromLTRB(10, 8, 8, 8),
+                          decoration: BoxDecoration(
+                            color: isDark
+                                ? const Color(0xFF171C24)
+                                : Colors.white.withOpacity(0.98),
+                            borderRadius: BorderRadius.circular(24),
+                            border: Border.all(
+                              color: isDark
+                                  ? Colors.white.withOpacity(0.04)
+                                  : Colors.black.withOpacity(0.04),
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(
+                                  isDark ? 0.18 : 0.06,
+                                ),
+                                blurRadius: 18,
+                                offset: const Offset(0, -2),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Expanded(
+                                child: ConstrainedBox(
+                                  constraints: const BoxConstraints(
+                                    minHeight: 46,
+                                    maxHeight: 150,
+                                  ),
+                                  child: Scrollbar(
+                                    child: TextField(
+                                      controller: _controller,
+                                      focusNode: _inputFocusNode,
+                                      maxLength: maxChars,
+                                      minLines: 1,
+                                      maxLines: 5,
+                                      keyboardType: TextInputType.multiline,
+                                      style: GoogleFonts.manrope(
+                                        color: inputTextColor,
+                                        fontSize: 15.2,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                      decoration: InputDecoration(
+                                        counterText: "",
+                                        hintText: "Escribe tu mensaje aquí...",
+                                        hintStyle: GoogleFonts.manrope(
+                                          color: hintColor,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            18,
+                                          ),
+                                          borderSide: BorderSide.none,
+                                        ),
+                                        filled: true,
+                                        fillColor: inputFill,
+                                        contentPadding:
+                                            const EdgeInsets.symmetric(
+                                              horizontal: 16,
+                                              vertical: 12,
+                                            ),
+                                      ),
+                                      onSubmitted: (_) => _onSendPressed(),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              AnimatedContainer(
+                                duration: const Duration(milliseconds: 220),
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: _sendingMessage
+                                      ? Colors.grey
+                                      : const Color(0xFFA3D5F4),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: const Color(
+                                        0xFFA3D5F4,
+                                      ).withOpacity(0.25),
+                                      blurRadius: 12,
+                                      offset: const Offset(0, 6),
                                     ),
                                   ],
                                 ),
-                              ),
-                            ),
-                          );
-                        }
-                        if (_loadingInitialMessages) {
-                          return const Center(
-                            child: CircularProgressIndicator(),
-                          );
-                        }
-
-                        if (allMessages.isEmpty && !_botTyping) {
-                          return _buildEmptyState(isDark);
-                        }
-
-                        return ListView.builder(
-                          controller: _scrollController,
-                          physics: const ClampingScrollPhysics(),
-                          padding: const EdgeInsets.fromLTRB(14, 18, 14, 90),
-                          itemCount: totalCount,
-                          itemBuilder: (context, index) {
-                            if (_botTyping && index == allMessages.length) {
-                              return Align(
-                                alignment: Alignment.centerLeft,
-                                child: Container(
-                                  margin: const EdgeInsets.symmetric(
-                                    vertical: 6,
-                                  ),
-                                  child: _buildTypingBubble(botBubble, isDark),
-                                ),
-                              );
-                            }
-
-                            final message = allMessages[index];
-                            final isUser = message.role == "user";
-                            final bubbleColor = isUser ? userBubble : botBubble;
-                            final textColor = isUser
-                                ? AppColors.black
-                                : (isDark ? Colors.white : AppColors.black);
-                            final screenWidth = MediaQuery.sizeOf(
-                              context,
-                            ).width;
-                            final bubbleMaxWidth =
-                                ((screenWidth - 28) * 0.82)
-                                    .clamp(220.0, 560.0)
-                                    .toDouble();
-
-                            return GestureDetector(
-                              onLongPress: () async =>
-                                  await _copyMessage(message.content),
-                              child: Align(
-                                alignment: isUser
-                                    ? Alignment.centerRight
-                                    : Alignment.centerLeft,
-                                child: ConstrainedBox(
-                                  constraints: BoxConstraints(
-                                    maxWidth: bubbleMaxWidth,
-                                  ),
-                                  child: Container(
-                                    margin: const EdgeInsets.symmetric(
-                                      vertical: 6,
-                                    ),
-                                    padding: const EdgeInsets.fromLTRB(
-                                      14,
-                                      14,
-                                      14,
-                                      10,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: bubbleColor,
-                                      borderRadius: BorderRadius.only(
-                                        topLeft: const Radius.circular(24),
-                                        topRight: const Radius.circular(24),
-                                        bottomLeft: isUser
-                                            ? const Radius.circular(24)
-                                            : const Radius.circular(8),
-                                        bottomRight: isUser
-                                            ? const Radius.circular(8)
-                                            : const Radius.circular(24),
-                                      ),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.black.withOpacity(
-                                            isDark ? 0.18 : 0.06,
+                                child: IconButton(
+                                  icon: _sendingMessage
+                                      ? const SizedBox(
+                                          width: 18,
+                                          height: 18,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2.5,
+                                            valueColor:
+                                                AlwaysStoppedAnimation<Color>(
+                                                  Colors.white,
+                                                ),
                                           ),
-                                          blurRadius: 12,
-                                          offset: const Offset(0, 6),
+                                        )
+                                      : const Icon(
+                                          Icons.send_rounded,
+                                          color: Colors.white,
                                         ),
-                                      ],
-                                    ),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          message.content,
-                                          style: GoogleFonts.manrope(
-                                            color: textColor,
-                                            fontSize: 15.6,
-                                            height: 1.5,
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 8),
-                                      ],
-                                    ),
-                                  ),
+                                  onPressed: _sendingMessage
+                                      ? null
+                                      : _onSendPressed,
                                 ),
                               ),
-                            );
-                          },
-                        );
-                      },
-                    ),
-                  ),
-                  SafeArea(
-                    top: false,
-                    minimum: const EdgeInsets.only(bottom: 4),
-                    child: Padding(
-                      padding: EdgeInsets.only(
-                        left: 12,
-                        right: 12,
-                        top: 6,
-                        bottom: MediaQuery.of(context).viewInsets.bottom > 0
-                            ? 4
-                            : MediaQuery.of(context).padding.bottom + 6,
-                      ),
-                      child: Container(
-                        padding: const EdgeInsets.fromLTRB(10, 8, 8, 8),
-                        decoration: BoxDecoration(
-                          color: isDark
-                              ? const Color(0xFF171C24)
-                              : Colors.white.withOpacity(0.98),
-                          borderRadius: BorderRadius.circular(24),
-                          border: Border.all(
-                            color: isDark
-                                ? Colors.white.withOpacity(0.04)
-                                : Colors.black.withOpacity(0.04),
+                            ],
                           ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(
-                                isDark ? 0.18 : 0.06,
-                              ),
-                              blurRadius: 18,
-                              offset: const Offset(0, -2),
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Expanded(
-                              child: ConstrainedBox(
-                                constraints: const BoxConstraints(
-                                  minHeight: 46,
-                                  maxHeight: 150,
-                                ),
-                                child: Scrollbar(
-                                  child: TextField(
-                                    controller: _controller,
-                                    focusNode: _inputFocusNode,
-                                    maxLength: maxChars,
-                                    maxLines: null,
-                                    keyboardType: TextInputType.multiline,
-                                    style: GoogleFonts.manrope(
-                                      color: inputTextColor,
-                                      fontSize: 15.2,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                    decoration: InputDecoration(
-                                      counterText: "",
-                                      hintText: "Escribe tu mensaje aquí...",
-                                      hintStyle: GoogleFonts.manrope(
-                                        color: hintColor,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                      border: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(18),
-                                        borderSide: BorderSide.none,
-                                      ),
-                                      filled: true,
-                                      fillColor: inputFill,
-                                      contentPadding:
-                                          const EdgeInsets.symmetric(
-                                            horizontal: 16,
-                                            vertical: 12,
-                                          ),
-                                    ),
-                                    onSubmitted: (_) => _onSendPressed(),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            AnimatedContainer(
-                              duration: const Duration(milliseconds: 220),
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: _sendingMessage
-                                    ? Colors.grey
-                                    : const Color(0xFFA3D5F4),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: const Color(
-                                      0xFFA3D5F4,
-                                    ).withOpacity(0.25),
-                                    blurRadius: 12,
-                                    offset: const Offset(0, 6),
-                                  ),
-                                ],
-                              ),
-                              child: IconButton(
-                                icon: _sendingMessage
-                                    ? const SizedBox(
-                                        width: 18,
-                                        height: 18,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2.5,
-                                          valueColor:
-                                              AlwaysStoppedAnimation<Color>(
-                                                Colors.white,
-                                              ),
-                                        ),
-                                      )
-                                    : const Icon(
-                                        Icons.send_rounded,
-                                        color: Colors.white,
-                                      ),
-                                onPressed: _sendingMessage
-                                    ? null
-                                    : _onSendPressed,
-                              ),
-                            ),
-                          ],
                         ),
                       ),
                     ),
@@ -997,97 +1209,101 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
         ],
       ),
-      child: Row(
-        children: [
-          Material(
-            color: Colors.transparent,
-            child: InkWell(
-              borderRadius: BorderRadius.circular(16),
-              onTap: _sendingMessage
-                  ? () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            "Espera a que SeaBot termine de responder.",
-                            style: GoogleFonts.manrope(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w700,
+      child: ResponsiveHelper.centeredConstraint(
+        context: context,
+        maxTabletWidth: 800,
+        child: Row(
+          children: [
+            Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(16),
+                onTap: _sendingMessage
+                    ? () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              "Espera a que SeaBot termine de responder.",
+                              style: GoogleFonts.manrope(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
+                            backgroundColor: AppColors.secundary,
+                            behavior: SnackBarBehavior.floating,
                           ),
-                          backgroundColor: AppColors.secundary,
-                          behavior: SnackBarBehavior.floating,
-                        ),
-                      );
-                    }
-                  : () => Navigator.pop(context),
-              child: Container(
-                width: 46,
-                height: 46,
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.18),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.white.withOpacity(0.24)),
-                ),
-                child: const Icon(
-                  Icons.arrow_back_rounded,
-                  color: Colors.white,
-                  size: 24,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Container(
-            width: 50,
-            height: 50,
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.16),
-              shape: BoxShape.circle,
-              border: Border.all(color: Colors.white.withOpacity(0.24)),
-            ),
-            child: ClipOval(
-              child: Container(
-                color: Colors.white,
-                child: Padding(
-                  padding: const EdgeInsets.all(5.0),
-                  child: Image.asset(
-                    "assets/images/SeaBot.png",
-                    fit: BoxFit.contain,
+                        );
+                      }
+                    : () => Navigator.pop(context),
+                child: Container(
+                  width: 46,
+                  height: 46,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.18),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.white.withOpacity(0.24)),
                   ),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "SeaBot",
-                  style: GoogleFonts.manrope(
+                  child: const Icon(
+                    Icons.arrow_back_rounded,
                     color: Colors.white,
-                    fontSize: 19,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.3,
+                    size: 24,
                   ),
                 ),
-                const SizedBox(height: 3),
-                Text(
-                  _sendingMessage
-                      ? "Escribiendo una respuesta..."
-                      : "Siempre disponible para ti. 💬😇",
-                  style: GoogleFonts.manrope(
-                    color: Colors.white.withOpacity(0.92),
-                    fontSize: 12.8,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
+              ),
             ),
-          ),
-        ],
+            const SizedBox(width: 12),
+            Container(
+              width: 50,
+              height: 50,
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.16),
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white.withOpacity(0.24)),
+              ),
+              child: ClipOval(
+                child: Container(
+                  color: Colors.white,
+                  child: Padding(
+                    padding: const EdgeInsets.all(5.0),
+                    child: Image.asset(
+                      "assets/images/SeaBot.png",
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "SeaBot",
+                    style: GoogleFonts.manrope(
+                      color: Colors.white,
+                      fontSize: 19,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.3,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    _sendingMessage
+                        ? "Escribiendo una respuesta..."
+                        : "Siempre disponible para ti. 💬😇",
+                    style: GoogleFonts.manrope(
+                      color: Colors.white.withOpacity(0.92),
+                      fontSize: 12.8,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1096,64 +1312,13 @@ class _ChatScreenState extends State<ChatScreen> {
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24),
-        child: Container(
-          width: double.infinity,
+        child: SeaBotCard(
           padding: const EdgeInsets.all(28),
-          decoration: BoxDecoration(
-            color: isDark
-                ? const Color(0xFF171C24)
-                : Colors.white.withOpacity(0.95),
-            borderRadius: BorderRadius.circular(28),
-            border: Border.all(
-              color: isDark
-                  ? Colors.white.withOpacity(0.04)
-                  : Colors.black.withOpacity(0.04),
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(isDark ? 0.20 : 0.06),
-                blurRadius: 22,
-                offset: const Offset(0, 12),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 76,
-                height: 76,
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.12),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.chat_bubble_outline_rounded,
-                  color: AppColors.primary,
-                  size: 36,
-                ),
-              ),
-              const SizedBox(height: 18),
-              Text(
-                "Empieza una conversación",
-                textAlign: TextAlign.center,
-                style: GoogleFonts.manrope(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                  color: isDark ? Colors.white : const Color(0xFF18202A),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
+          child: const SeaBotEmptyState(
+            icon: Icons.chat_bubble_outline_rounded,
+            message: "Empieza una conversación",
+            subMessage:
                 "Escribe tu primer mensaje y SeaBot te responderá aquí.",
-                textAlign: TextAlign.center,
-                style: GoogleFonts.manrope(
-                  fontSize: 14,
-                  height: 1.5,
-                  color: isDark ? Colors.white70 : Colors.black54,
-                ),
-              ),
-            ],
           ),
         ),
       ),

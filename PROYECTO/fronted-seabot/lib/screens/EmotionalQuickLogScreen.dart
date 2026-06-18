@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:seabot/core/app_colors.dart';
 import 'package:seabot/core/app_data.dart';
+import 'package:seabot/core/responsive_helper.dart';
 import 'package:seabot/models/emotional_register.dart';
 import 'package:seabot/repositories/emotional_registers_repository.dart';
 import 'package:seabot/services/emotional_register_service.dart';
@@ -28,12 +29,21 @@ class _EmotionalQuickLogScreenState extends State<EmotionalQuickLogScreen> {
 
   //bool _isHistoryLoading = false;
 
-  final List<Map<String, String>> _emotions = const [
-    {"emoji": "😀", "label": "Alegría"},
-    {"emoji": "😢", "label": "Tristeza"},
-    {"emoji": "😡", "label": "Ira"},
-    {"emoji": "😨", "label": "Miedo"},
-  ];
+  final List<String> _emotions = const ["Alegría", "Tristeza", "Ira", "Miedo"];
+  Color _getEmotionStrongColor(String label) {
+    switch (label) {
+      case "Alegría":
+        return const Color(0xFFFF9800);
+      case "Tristeza":
+        return const Color(0xFF1E88E5);
+      case "Ira":
+        return const Color(0xFFE53935);
+      case "Miedo":
+        return const Color(0xFF8E24AA);
+      default:
+        return AppColors.primary;
+    }
+  }
 
   @override
   void initState() {
@@ -64,7 +74,7 @@ class _EmotionalQuickLogScreenState extends State<EmotionalQuickLogScreen> {
     }
   }
 
-  Future<void> _onEmotionPressed(String emoji, String label) async {
+  Future<void> _onEmotionPressed(String label) async {
     if (_isRegistering) return;
 
     setState(() {
@@ -94,25 +104,10 @@ class _EmotionalQuickLogScreenState extends State<EmotionalQuickLogScreen> {
       return;
     }
 
-    await _registrarEmocion(emoji, label);
+    await _registrarEmocion(label);
   }
 
-  String _getEmojiForEmotion(String? emotion) {
-    switch (emotion) {
-      case "Alegría":
-        return "😀";
-      case "Tristeza":
-        return "😢";
-      case "Ira":
-        return "😡";
-      case "Miedo":
-        return "😨";
-      default:
-        return "🙂";
-    }
-  }
-
-  Future<void> _registrarEmocion(String emoji, String label) async {
+  Future<void> _registrarEmocion(String label) async {
     if (_isRegistering) return;
 
     setState(() => _isRegistering = true);
@@ -181,7 +176,7 @@ class _EmotionalQuickLogScreenState extends State<EmotionalQuickLogScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            "Estado registrado: $label $emoji",
+            "Estado registrado: $label",
             style: GoogleFonts.manrope(
               color: Colors.white,
               fontWeight: FontWeight.w700,
@@ -201,67 +196,165 @@ class _EmotionalQuickLogScreenState extends State<EmotionalQuickLogScreen> {
     }
   }
 
-  Widget _buildEmotionButton(String emoji, String label, bool isDark) {
+  IconData _getIconForEmotion(String label) {
+    switch (label) {
+      case "Alegría":
+        return Icons.sentiment_very_satisfied_rounded;
+      case "Tristeza":
+        return Icons.sentiment_very_dissatisfied_rounded;
+      case "Ira":
+        return Icons.mood_bad_rounded;
+      case "Miedo":
+        return Icons.sentiment_neutral_rounded;
+      default:
+        return Icons.sentiment_satisfied_rounded;
+    }
+  }
+
+  Color _getEmotionAccentColor(String label) {
+    switch (label) {
+      case "Alegría":
+        return const Color(0xFFFFB300); // Ámbar cálido
+      case "Tristeza":
+        return const Color(0xFF42A5F5); // Azul cielo
+      case "Ira":
+        return const Color(0xFFEF5350); // Rojo coral suave
+      case "Miedo":
+        return const Color(0xFFAB47BC); // Lavanda/Morado
+      default:
+        return AppColors.primary;
+    }
+  }
+
+  Color _getEmotionBgColor(String label, bool isDark) {
+    switch (label) {
+      case "Alegría":
+        return isDark ? const Color(0xFF2E2612) : const Color(0xFFFFFDE7);
+      case "Tristeza":
+        return isDark ? const Color(0xFF162536) : const Color(0xFFE3F2FD);
+      case "Ira":
+        return isDark ? const Color(0xFF2F1B1B) : const Color(0xFFFFEBEE);
+      case "Miedo":
+        return isDark ? const Color(0xFF271B30) : const Color(0xFFF3E5F5);
+      default:
+        return isDark ? const Color(0xFF1C2430) : const Color(0xFFF3F6FA);
+    }
+  }
+
+  Widget _buildEmotionButton(String label, bool isDark, double cardWidth) {
     final isSelected = _selectedEmotion == label;
+    final accentColor = _getEmotionAccentColor(label);
+    final strongColor = _getEmotionStrongColor(label);
+    final bgColor = _getEmotionBgColor(label, isDark);
+    final iconData = _getIconForEmotion(label);
 
     return Material(
       color: Colors.transparent,
       child: InkWell(
         borderRadius: BorderRadius.circular(24),
-        onTap: () => _onEmotionPressed(emoji, label),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 220),
-          width: 140,
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-          decoration: BoxDecoration(
-            color: isSelected
-                ? AppColors.secundaryStart.withOpacity(0.12)
-                : (isDark
-                      ? const Color(0xFF171C24)
-                      : Colors.white.withOpacity(0.95)),
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(
+        onTap: () => _onEmotionPressed(label),
+        child: AnimatedScale(
+          scale: isSelected ? 1.04 : 1.0,
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOutBack,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            width: cardWidth,
+            height: 170,
+            alignment: Alignment.center,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+            decoration: BoxDecoration(
               color: isSelected
-                  ? AppColors.secundaryStart
+                  ? bgColor
                   : (isDark
-                        ? Colors.white.withOpacity(0.04)
-                        : Colors.black.withOpacity(0.04)),
-              width: isSelected ? 1.5 : 1,
+                        ? const Color(0xFF171C24)
+                        : Colors.white.withValues(alpha: 0.95)),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(
+                color: isSelected
+                    ? strongColor
+                    : (isDark
+                          ? Colors.white.withValues(alpha: 0.04)
+                          : Colors.black.withValues(alpha: 0.04)),
+                width: isSelected ? 2.0 : 1.0,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: isSelected
+                      ? strongColor.withValues(alpha: isDark ? 0.22 : 0.16)
+                      : Colors.black.withValues(alpha: isDark ? 0.18 : 0.05),
+                  blurRadius: isSelected ? 22 : 14,
+                  offset: isSelected ? const Offset(0, 8) : const Offset(0, 6),
+                ),
+              ],
             ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(isDark ? 0.18 : 0.06),
-                blurRadius: 18,
-                offset: const Offset(0, 10),
-              ),
-            ],
-          ),
-          child: Column(
-            children: [
-              Container(
-                width: 66,
-                height: 66,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: isDark
-                      ? AppColors.secundary.withOpacity(0.18)
-                      : AppColors.secundary.withOpacity(0.12),
+            child: Stack(
+              fit: StackFit.expand,
+              clipBehavior: Clip.none,
+              children: [
+                Align(
+                  alignment: Alignment.center,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Container(
+                        width: 72,
+                        height: 72,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: isSelected
+                              ? strongColor.withValues(alpha: 0.18)
+                              : strongColor.withValues(
+                                  alpha: isDark ? 0.16 : 0.12,
+                                ),
+                          border: Border.all(
+                            color: strongColor.withValues(alpha: 0.28),
+                            width: 1.4,
+                          ),
+                        ),
+                        child: Icon(iconData, size: 38, color: strongColor),
+                      ),
+                      const SizedBox(height: 14),
+                      SizedBox(
+                        width: double.infinity,
+                        child: Text(
+                          label,
+                          textAlign: TextAlign.center,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.manrope(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                            color: isDark
+                                ? Colors.white
+                                : const Color(0xFF18202A),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                child: Center(
-                  child: Text(emoji, style: const TextStyle(fontSize: 34)),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                label,
-                textAlign: TextAlign.center,
-                style: GoogleFonts.manrope(
-                  fontSize: 14.5,
-                  fontWeight: FontWeight.w800,
-                  color: isDark ? Colors.white : const Color(0xFF18202A),
-                ),
-              ),
-            ],
+                if (isSelected)
+                  Positioned(
+                    top: -8,
+                    right: -4,
+                    child: Container(
+                      padding: const EdgeInsets.all(2),
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.check_circle_rounded,
+                        color: strongColor,
+                        size: 22,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
       ),
@@ -330,339 +423,357 @@ class _EmotionalQuickLogScreenState extends State<EmotionalQuickLogScreen> {
               child: Column(
                 children: [
                   _buildHeaderPremium(
-                    title: "Registro Emocional Rapido",
-                    subtitle: "Registra como te sientes en este momento",
+                    title: "Registro Emocional Rápido",
+                    subtitle: "Registra cómo te sientes en este momento",
                   ),
                   Expanded(
-                    child: Column(
-                      children: [
-                        Expanded(
-                          flex: 4,
-                          child: SingleChildScrollView(
-                            physics: const ClampingScrollPhysics(),
-                            padding: const EdgeInsets.fromLTRB(18, 18, 18, 10),
-                            child: Column(
-                              children: [
-                                _buildIntroCard(isDark),
-                                const SizedBox(height: 18),
-                                Text(
-                                  "¿Cómo te sientes ahora?",
-                                  textAlign: TextAlign.center,
-                                  style: GoogleFonts.manrope(
-                                    fontSize: 21,
-                                    fontWeight: FontWeight.w800,
-                                    color: isDark
-                                        ? Colors.white
-                                        : const Color(0xFF18202A),
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  "Selecciona la emoción que mejor describa tu estado actual.",
-                                  textAlign: TextAlign.center,
-                                  style: GoogleFonts.manrope(
-                                    fontSize: 14.2,
-                                    height: 1.5,
-                                    fontWeight: FontWeight.w500,
-                                    color: isDark
-                                        ? Colors.white70
-                                        : Colors.black54,
-                                  ),
-                                ),
-                                const SizedBox(height: 20),
-                                Wrap(
-                                  alignment: WrapAlignment.center,
-                                  spacing: 14,
-                                  runSpacing: 14,
-                                  children: _emotions.map((emotion) {
-                                    return _buildEmotionButton(
-                                      emotion["emoji"]!,
-                                      emotion["label"]!,
-                                      isDark,
-                                    );
-                                  }).toList(),
-                                ),
-                                if (_isRegistering) ...[
+                    child: ResponsiveHelper.centeredConstraint(
+                      context: context,
+                      maxTabletWidth: 600,
+                      child: Column(
+                        children: [
+                          Expanded(
+                            flex: 4,
+                            child: SingleChildScrollView(
+                              physics: const ClampingScrollPhysics(),
+                              padding: const EdgeInsets.fromLTRB(
+                                18,
+                                18,
+                                18,
+                                10,
+                              ),
+                              child: Column(
+                                children: [
+                                  _buildIntroCard(isDark),
                                   const SizedBox(height: 18),
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      const SizedBox(
-                                        width: 18,
-                                        height: 18,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2.5,
-                                          valueColor:
-                                              AlwaysStoppedAnimation<Color>(
-                                                AppColors.secundaryStart,
-                                              ),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 10),
-                                      Text(
-                                        "Registrando emoción...",
-                                        style: GoogleFonts.manrope(
-                                          fontSize: 13.5,
-                                          fontWeight: FontWeight.w700,
-                                          color: isDark
-                                              ? Colors.white70
-                                              : Colors.black54,
-                                        ),
-                                      ),
-                                    ],
+                                  Text(
+                                    "¿Cómo te sientes ahora?",
+                                    textAlign: TextAlign.center,
+                                    style: GoogleFonts.manrope(
+                                      fontSize: 21,
+                                      fontWeight: FontWeight.w800,
+                                      color: isDark
+                                          ? Colors.white
+                                          : const Color(0xFF18202A),
+                                    ),
                                   ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    "Selecciona la emoción que mejor describa tu estado actual.",
+                                    textAlign: TextAlign.center,
+                                    style: GoogleFonts.manrope(
+                                      fontSize: 14.2,
+                                      height: 1.5,
+                                      fontWeight: FontWeight.w500,
+                                      color: isDark
+                                          ? Colors.white70
+                                          : Colors.black54,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 20),
+                                  LayoutBuilder(
+                                    builder: (context, constraints) {
+                                      final double cardWidth =
+                                          ((constraints.maxWidth - 14) / 2)
+                                              .clamp(100.0, 240.0);
+                                      return Wrap(
+                                        alignment: WrapAlignment.center,
+                                        spacing: 14,
+                                        runSpacing: 14,
+                                        children: _emotions.map((emotion) {
+                                          return _buildEmotionButton(
+                                            emotion,
+                                            isDark,
+                                            cardWidth,
+                                          );
+                                        }).toList(),
+                                      );
+                                    },
+                                  ),
+                                  if (_isRegistering) ...[
+                                    const SizedBox(height: 18),
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        const SizedBox(
+                                          width: 18,
+                                          height: 18,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2.5,
+                                            valueColor:
+                                                AlwaysStoppedAnimation<Color>(
+                                                  AppColors.secundaryStart,
+                                                ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 10),
+                                        Text(
+                                          "Registrando emoción...",
+                                          style: GoogleFonts.manrope(
+                                            fontSize: 13.5,
+                                            fontWeight: FontWeight.w700,
+                                            color: isDark
+                                                ? Colors.white70
+                                                : Colors.black54,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
                                 ],
-                              ],
+                              ),
                             ),
                           ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(18, 8, 18, 18),
-                          child: _buildHistoryLauncher(isDark),
-                        ),
-                        //Expanded(
-                        //  flex: 5,
-                        //  child: Container(
-                        //    width: double.infinity,
-                        //    margin: const EdgeInsets.fromLTRB(18, 8, 18, 18),
-                        //    decoration: BoxDecoration(
-                        //      color: isDark
-                        //          ? const Color(0xFF171C24)
-                        //          : Colors.white.withOpacity(0.95),
-                        //      borderRadius: BorderRadius.circular(28),
-                        //      border: Border.all(
-                        //        color: isDark
-                        //            ? Colors.white.withOpacity(0.04)
-                        //            : Colors.black.withOpacity(0.04),
-                        //      ),
-                        //      boxShadow: [
-                        //        BoxShadow(
-                        //          color: Colors.black.withOpacity(
-                        //            isDark ? 0.20 : 0.06,
-                        //          ),
-                        //          blurRadius: 22,
-                        //          offset: const Offset(0, 12),
-                        //        ),
-                        //      ],
-                        //    ),
-                        //    child: Column(
-                        //      children: [
-                        //        Padding(
-                        //          padding: const EdgeInsets.fromLTRB(
-                        //            18,
-                        //            18,
-                        //            18,
-                        //            10,
-                        //          ),
-                        //          child: Row(
-                        //            children: [
-                        //              Text(
-                        //                "Historial reciente",
-                        //                style: GoogleFonts.manrope(
-                        //                  fontSize: 16.5,
-                        //                  fontWeight: FontWeight.w800,
-                        //                  color: isDark
-                        //                      ? Colors.white
-                        //                      : const Color(0xFF18202A),
-                        //                ),
-                        //              ),
-                        //              const Spacer(),
-                        //              Icon(
-                        //                Icons.history_rounded,
-                        //                color: isDark
-                        //                    ? Colors.white54
-                        //                    : Colors.black45,
-                        //              ),
-                        //            ],
-                        //          ),
-                        //        ),
-                        //        Divider(
-                        //          height: 1,
-                        //          color: isDark
-                        //              ? Colors.white.withOpacity(0.06)
-                        //              : Colors.black.withOpacity(0.06),
-                        //        ),
-                        //        Expanded(
-                        //          child: FutureBuilder<List<EmotionalRegister>>(
-                        //            future: resultados,
-                        //            builder: (context, snapshot) {
-                        //              if (snapshot.connectionState ==
-                        //                  ConnectionState.waiting) {
-                        //                return const Center(
-                        //                  child: CircularProgressIndicator(),
-                        //                );
-                        //              } else if (snapshot.hasError) {
-                        //                return Center(
-                        //                  child: Padding(
-                        //                    padding: const EdgeInsets.symmetric(
-                        //                      horizontal: 20,
-                        //                    ),
-                        //                    child: Text(
-                        //                      "Error: ${snapshot.error}",
-                        //                      textAlign: TextAlign.center,
-                        //                      style: GoogleFonts.manrope(
-                        //                        color: Colors.redAccent,
-                        //                        fontWeight: FontWeight.w600,
-                        //                      ),
-                        //                    ),
-                        //                  ),
-                        //                );
-                        //              } else if (!snapshot.hasData ||
-                        //                  snapshot.data!.isEmpty) {
-                        //                return Center(
-                        //                  child: Padding(
-                        //                    padding: const EdgeInsets.symmetric(
-                        //                      horizontal: 24,
-                        //                    ),
-                        //                    child: Column(
-                        //                      mainAxisSize: MainAxisSize.min,
-                        //                      children: [
-                        //                        Container(
-                        //                          width: 68,
-                        //                          height: 68,
-                        //                          decoration: BoxDecoration(
-                        //                            color: AppColors.primary
-                        //                                .withOpacity(0.12),
-                        //                            shape: BoxShape.circle,
-                        //                          ),
-                        //                          child: const Icon(
-                        //                            Icons.mood_rounded,
-                        //                            color: AppColors.primary,
-                        //                            size: 34,
-                        //                          ),
-                        //                        ),
-                        //                        const SizedBox(height: 16),
-                        //                        Text(
-                        //                          "No hay registros emocionales aún",
-                        //                          textAlign: TextAlign.center,
-                        //                          style: GoogleFonts.manrope(
-                        //                            fontSize: 17,
-                        //                            fontWeight: FontWeight.w800,
-                        //                            color: isDark
-                        //                                ? Colors.white
-                        //                                : const Color(
-                        //                                    0xFF18202A,
-                        //                                  ),
-                        //                          ),
-                        //                        ),
-                        //                        const SizedBox(height: 8),
-                        //                        Text(
-                        //                          "Realiza tu primer registro para empezar a ver tu historial 💭",
-                        //                          textAlign: TextAlign.center,
-                        //                          style: GoogleFonts.manrope(
-                        //                            fontSize: 14,
-                        //                            height: 1.5,
-                        //                            color: isDark
-                        //                                ? Colors.white70
-                        //                                : Colors.black54,
-                        //                          ),
-                        //                        ),
-                        //                      ],
-                        //                    ),
-                        //                  ),
-                        //                );
-                        //              }
-                        //
-                        //              final resultadosData = snapshot.data!;
-                        //              return ListView.builder(
-                        //                physics:
-                        //                    const BouncingScrollPhysics(),
-                        //                padding: const EdgeInsets.all(14),
-                        //                itemCount: resultadosData.length,
-                        //                itemBuilder: (context, index) {
-                        //                  final r = resultadosData[index];
-                        //                  return Container(
-                        //                    margin: const EdgeInsets.only(
-                        //                      bottom: 12,
-                        //                    ),
-                        //                    padding: const EdgeInsets.all(14),
-                        //                    decoration: BoxDecoration(
-                        //                      color: isDark
-                        //                          ? Colors.white.withOpacity(
-                        //                              0.04,
-                        //                            )
-                        //                          : const Color(0xFFF7F9FC),
-                        //                      borderRadius:
-                        //                          BorderRadius.circular(20),
-                        //                      border: Border.all(
-                        //                        color: isDark
-                        //                            ? Colors.white.withOpacity(
-                        //                                0.05,
-                        //                              )
-                        //                            : Colors.black.withOpacity(
-                        //                                0.04,
-                        //                              ),
-                        //                      ),
-                        //                    ),
-                        //                    child: Row(
-                        //                      children: [
-                        //                        Container(
-                        //                          width: 52,
-                        //                          height: 52,
-                        //                          decoration: BoxDecoration(
-                        //                            color: AppColors.secundary
-                        //                                .withOpacity(0.12),
-                        //                            shape: BoxShape.circle,
-                        //                          ),
-                        //                          child: Center(
-                        //                            child: Text(
-                        //                              _getEmojiForEmotion(
-                        //                                r.emotion,
-                        //                              ),
-                        //                              style: const TextStyle(
-                        //                                fontSize: 28,
-                        //                              ),
-                        //                            ),
-                        //                          ),
-                        //                        ),
-                        //                        const SizedBox(width: 12),
-                        //                        Expanded(
-                        //                          child: Column(
-                        //                            crossAxisAlignment:
-                        //                                CrossAxisAlignment
-                        //                                    .start,
-                        //                            children: [
-                        //                              Text(
-                        //                                r.emotion ?? "",
-                        //                                style:
-                        //                                    GoogleFonts.manrope(
-                        //                                  color: isDark
-                        //                                      ? Colors.white
-                        //                                      : Colors.black87,
-                        //                                  fontWeight:
-                        //                                      FontWeight.w800,
-                        //                                  fontSize: 15,
-                        //                                ),
-                        //                              ),
-                        //                              const SizedBox(height: 5),
-                        //                              Text(
-                        //                                "📅 ${_formatFecha(r.fechaHora)}",
-                        //                                style:
-                        //                                    GoogleFonts.manrope(
-                        //                                  fontSize: 13,
-                        //                                  color: isDark
-                        //                                      ? Colors.white60
-                        //                                      : Colors.black54,
-                        //                                  fontWeight:
-                        //                                      FontWeight.w500,
-                        //                                ),
-                        //                              ),
-                        //                            ],
-                        //                          ),
-                        //                        ),
-                        //                      ],
-                        //                    ),
-                        //                  );
-                        //                },
-                        //              );
-                        //            },
-                        //          ),
-                        //        ),
-                        //      ],
-                        //    ),
-                        //  ),
-                        //),
-                      ],
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(18, 8, 18, 18),
+                            child: _buildHistoryLauncher(isDark),
+                          ),
+
+                          //Expanded(
+                          //  flex: 5,
+                          //  child: Container(
+                          //    width: double.infinity,
+                          //    margin: const EdgeInsets.fromLTRB(18, 8, 18, 18),
+                          //    decoration: BoxDecoration(
+                          //      color: isDark
+                          //          ? const Color(0xFF171C24)
+                          //          : Colors.white.withOpacity(0.95),
+                          //      borderRadius: BorderRadius.circular(28),
+                          //      border: Border.all(
+                          //        color: isDark
+                          //            ? Colors.white.withOpacity(0.04)
+                          //            : Colors.black.withOpacity(0.04),
+                          //      ),
+                          //      boxShadow: [
+                          //        BoxShadow(
+                          //          color: Colors.black.withOpacity(
+                          //            isDark ? 0.20 : 0.06,
+                          //          ),
+                          //          blurRadius: 22,
+                          //          offset: const Offset(0, 12),
+                          //        ),
+                          //      ],
+                          //    ),
+                          //    child: Column(
+                          //      children: [
+                          //        Padding(
+                          //          padding: const EdgeInsets.fromLTRB(
+                          //            18,
+                          //            18,
+                          //            18,
+                          //            10,
+                          //          ),
+                          //          child: Row(
+                          //            children: [
+                          //              Text(
+                          //                "Historial reciente",
+                          //                style: GoogleFonts.manrope(
+                          //                  fontSize: 16.5,
+                          //                  fontWeight: FontWeight.w800,
+                          //                  color: isDark
+                          //                      ? Colors.white
+                          //                      : const Color(0xFF18202A),
+                          //                ),
+                          //              ),
+                          //              const Spacer(),
+                          //              Icon(
+                          //                Icons.history_rounded,
+                          //                color: isDark
+                          //                    ? Colors.white54
+                          //                    : Colors.black45,
+                          //              ),
+                          //            ],
+                          //          ),
+                          //        ),
+                          //        Divider(
+                          //          height: 1,
+                          //          color: isDark
+                          //              ? Colors.white.withOpacity(0.06)
+                          //              : Colors.black.withOpacity(0.06),
+                          //        ),
+                          //        Expanded(
+                          //          child: FutureBuilder<List<EmotionalRegister>>(
+                          //            future: resultados,
+                          //            builder: (context, snapshot) {
+                          //              if (snapshot.connectionState ==
+                          //                  ConnectionState.waiting) {
+                          //                return const Center(
+                          //                  child: CircularProgressIndicator(),
+                          //                );
+                          //              } else if (snapshot.hasError) {
+                          //                return Center(
+                          //                  child: Padding(
+                          //                    padding: const EdgeInsets.symmetric(
+                          //                      horizontal: 20,
+                          //                    ),
+                          //                    child: Text(
+                          //                      "Error: ${snapshot.error}",
+                          //                      textAlign: TextAlign.center,
+                          //                      style: GoogleFonts.manrope(
+                          //                        color: Colors.redAccent,
+                          //                        fontWeight: FontWeight.w600,
+                          //                      ),
+                          //                    ),
+                          //                  ),
+                          //                );
+                          //              } else if (!snapshot.hasData ||
+                          //                  snapshot.data!.isEmpty) {
+                          //                return Center(
+                          //                  child: Padding(
+                          //                    padding: const EdgeInsets.symmetric(
+                          //                      horizontal: 24,
+                          //                    ),
+                          //                    child: Column(
+                          //                      mainAxisSize: MainAxisSize.min,
+                          //                      children: [
+                          //                        Container(
+                          //                          width: 68,
+                          //                          height: 68,
+                          //                          decoration: BoxDecoration(
+                          //                            color: AppColors.primary
+                          //                                .withOpacity(0.12),
+                          //                            shape: BoxShape.circle,
+                          //                          ),
+                          //                          child: const Icon(
+                          //                            Icons.mood_rounded,
+                          //                            color: AppColors.primary,
+                          //                            size: 34,
+                          //                          ),
+                          //                        ),
+                          //                        const SizedBox(height: 16),
+                          //                        Text(
+                          //                          "No hay registros emocionales aún",
+                          //                          textAlign: TextAlign.center,
+                          //                          style: GoogleFonts.manrope(
+                          //                            fontSize: 17,
+                          //                            fontWeight: FontWeight.w800,
+                          //                            color: isDark
+                          //                                ? Colors.white
+                          //                                : const Color(
+                          //                                    0xFF18202A,
+                          //                                  ),
+                          //                          ),
+                          //                        ),
+                          //                        const SizedBox(height: 8),
+                          //                        Text(
+                          //                          "Realiza tu primer registro para empezar a ver tu historial 💭",
+                          //                          textAlign: TextAlign.center,
+                          //                          style: GoogleFonts.manrope(
+                          //                            fontSize: 14,
+                          //                            height: 1.5,
+                          //                            color: isDark
+                          //                                ? Colors.white70
+                          //                                : Colors.black54,
+                          //                          ),
+                          //                        ),
+                          //                      ],
+                          //                    ),
+                          //                  ),
+                          //                );
+                          //              }
+                          //
+                          //              final resultadosData = snapshot.data!;
+                          //              return ListView.builder(
+                          //                physics:
+                          //                    const BouncingScrollPhysics(),
+                          //                padding: const EdgeInsets.all(14),
+                          //                itemCount: resultadosData.length,
+                          //                itemBuilder: (context, index) {
+                          //                  final r = resultadosData[index];
+                          //                  return Container(
+                          //                    margin: const EdgeInsets.only(
+                          //                      bottom: 12,
+                          //                    ),
+                          //                    padding: const EdgeInsets.all(14),
+                          //                    decoration: BoxDecoration(
+                          //                      color: isDark
+                          //                          ? Colors.white.withOpacity(
+                          //                              0.04,
+                          //                            )
+                          //                          : const Color(0xFFF7F9FC),
+                          //                      borderRadius:
+                          //                          BorderRadius.circular(20),
+                          //                      border: Border.all(
+                          //                        color: isDark
+                          //                            ? Colors.white.withOpacity(
+                          //                                0.05,
+                          //                              )
+                          //                            : Colors.black.withOpacity(
+                          //                                0.04,
+                          //                              ),
+                          //                      ),
+                          //                    ),
+                          //                    child: Row(
+                          //                      children: [
+                          //                        Container(
+                          //                          width: 52,
+                          //                          height: 52,
+                          //                          decoration: BoxDecoration(
+                          //                            color: AppColors.secundary
+                          //                                .withOpacity(0.12),
+                          //                            shape: BoxShape.circle,
+                          //                          ),
+                          //                          child: Center(
+                          //                            child: Text(
+                          //                              _getEmojiForEmotion(
+                          //                                r.emotion,
+                          //                              ),
+                          //                              style: const TextStyle(
+                          //                                fontSize: 28,
+                          //                              ),
+                          //                            ),
+                          //                          ),
+                          //                        ),
+                          //                        const SizedBox(width: 12),
+                          //                        Expanded(
+                          //                          child: Column(
+                          //                            crossAxisAlignment:
+                          //                                CrossAxisAlignment
+                          //                                    .start,
+                          //                            children: [
+                          //                              Text(
+                          //                                r.emotion ?? "",
+                          //                                style:
+                          //                                    GoogleFonts.manrope(
+                          //                                  color: isDark
+                          //                                      ? Colors.white
+                          //                                      : Colors.black87,
+                          //                                  fontWeight:
+                          //                                      FontWeight.w800,
+                          //                                  fontSize: 15,
+                          //                                ),
+                          //                              ),
+                          //                              const SizedBox(height: 5),
+                          //                              Text(
+                          //                                "📅 ${_formatFecha(r.fechaHora)}",
+                          //                                style:
+                          //                                    GoogleFonts.manrope(
+                          //                                  fontSize: 13,
+                          //                                  color: isDark
+                          //                                      ? Colors.white60
+                          //                                      : Colors.black54,
+                          //                                  fontWeight:
+                          //                                      FontWeight.w500,
+                          //                                ),
+                          //                              ),
+                          //                            ],
+                          //                          ),
+                          //                        ),
+                          //                      ],
+                          //                    ),
+                          //                  );
+                          //                },
+                          //              );
+                          //            },
+                          //          ),
+                          //        ),
+                          //      ],
+                          //    ),
+                          //  ),
+                          //),
+                        ],
+                      ),
                     ),
                   ),
                 ],
@@ -976,36 +1087,62 @@ class _EmotionalQuickLogScreenState extends State<EmotionalQuickLogScreen> {
                           itemCount: resultadosData.length,
                           itemBuilder: (context, index) {
                             final r = resultadosData[index];
+                            final emotion = r.emotion ?? "";
+                            final accentColor = _getEmotionAccentColor(emotion);
+                            final strongColor = _getEmotionStrongColor(emotion);
                             return Container(
                               margin: const EdgeInsets.only(bottom: 12),
                               padding: const EdgeInsets.all(14),
                               decoration: BoxDecoration(
                                 color: isDark
-                                    ? Colors.white.withOpacity(0.04)
-                                    : const Color(0xFFF7F9FC),
+                                    ? const Color(0xFF1B212B)
+                                    : Colors.white,
                                 borderRadius: BorderRadius.circular(20),
                                 border: Border.all(
                                   color: isDark
-                                      ? Colors.white.withOpacity(0.05)
-                                      : Colors.black.withOpacity(0.04),
+                                      ? Colors.white.withOpacity(0.06)
+                                      : const Color(0xFFE9EEF5),
                                 ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(
+                                      isDark ? 0.18 : 0.04,
+                                    ),
+                                    blurRadius: 14,
+                                    offset: const Offset(0, 6),
+                                  ),
+                                ],
                               ),
                               child: Row(
                                 children: [
                                   Container(
-                                    width: 52,
-                                    height: 52,
+                                    width: 58,
+                                    height: 58,
                                     decoration: BoxDecoration(
-                                      color: AppColors.secundary.withOpacity(
-                                        0.12,
+                                      color: strongColor.withValues(
+                                        alpha: isDark ? 0.18 : 0.13,
                                       ),
                                       shape: BoxShape.circle,
-                                    ),
-                                    child: Center(
-                                      child: Text(
-                                        _getEmojiForEmotion(r.emotion),
-                                        style: const TextStyle(fontSize: 28),
+                                      border: Border.all(
+                                        color: strongColor.withValues(
+                                          alpha: 0.30,
+                                        ),
+                                        width: 1.3,
                                       ),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: strongColor.withValues(
+                                            alpha: isDark ? 0.20 : 0.12,
+                                          ),
+                                          blurRadius: 12,
+                                          offset: const Offset(0, 5),
+                                        ),
+                                      ],
+                                    ),
+                                    child: Icon(
+                                      _getIconForEmotion(emotion),
+                                      size: 34,
+                                      color: strongColor,
                                     ),
                                   ),
                                   const SizedBox(width: 12),
@@ -1025,15 +1162,31 @@ class _EmotionalQuickLogScreenState extends State<EmotionalQuickLogScreen> {
                                           ),
                                         ),
                                         const SizedBox(height: 5),
-                                        Text(
-                                          "📅 ${_formatFecha(r.fechaHora)}",
-                                          style: GoogleFonts.manrope(
-                                            fontSize: 13,
-                                            color: isDark
-                                                ? Colors.white60
-                                                : Colors.black54,
-                                            fontWeight: FontWeight.w500,
-                                          ),
+                                        Row(
+                                          children: [
+                                            Icon(
+                                              Icons.calendar_month_rounded,
+                                              size: 15,
+                                              color: isDark
+                                                  ? Colors.white54
+                                                  : Colors.black45,
+                                            ),
+                                            const SizedBox(width: 5),
+                                            Expanded(
+                                              child: Text(
+                                                _formatFecha(r.fechaHora),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: GoogleFonts.manrope(
+                                                  fontSize: 13,
+                                                  color: isDark
+                                                      ? Colors.white60
+                                                      : Colors.black54,
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
                                         ),
                                       ],
                                     ),
@@ -1085,101 +1238,107 @@ class _EmotionalQuickLogScreenState extends State<EmotionalQuickLogScreen> {
           ),
         ],
       ),
-      child: Stack(
-        children: [
-          // 🔹 decoración
-          Positioned(
-            right: -18,
-            top: -10,
-            child: Container(
-              width: 120,
-              height: 120,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.08),
+      child: ResponsiveHelper.centeredConstraint(
+        context: context,
+        maxTabletWidth: 600,
+        child: Stack(
+          children: [
+            // 🔹 decoración
+            Positioned(
+              right: -18,
+              top: -10,
+              child: Container(
+                width: 120,
+                height: 120,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withOpacity(0.08),
+                ),
               ),
             ),
-          ),
-          Positioned(
-            left: -20,
-            bottom: -30,
-            child: Container(
-              width: 110,
-              height: 110,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.06),
+            Positioned(
+              left: -20,
+              bottom: -30,
+              child: Container(
+                width: 110,
+                height: 110,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withOpacity(0.06),
+                ),
               ),
             ),
-          ),
 
-          // 🔹 contenido
-          Row(
-            children: [
-              // 🔥 BOTÓN BACK REUTILIZABLE
-              Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(16),
-                  onTap: () async {
-                    if (onWillPopCustom != null) {
-                      final canLeave = await onWillPopCustom();
-                      if (canLeave && mounted) Navigator.pop(context);
-                    } else {
-                      if (mounted) Navigator.pop(context);
-                    }
-                  },
-                  child: Container(
-                    width: 50,
-                    height: 50,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.18),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.white.withOpacity(0.24)),
-                    ),
-                    child: const Icon(
-                      Icons.arrow_back_rounded,
-                      color: Colors.white,
-                      size: 26,
+            // 🔹 contenido
+            Row(
+              children: [
+                // 🔥 BOTÓN BACK REUTILIZABLE
+                Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(16),
+                    onTap: () async {
+                      if (onWillPopCustom != null) {
+                        final canLeave = await onWillPopCustom();
+                        if (canLeave && mounted) Navigator.pop(context);
+                      } else {
+                        if (mounted) Navigator.pop(context);
+                      }
+                    },
+                    child: Container(
+                      width: 50,
+                      height: 50,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.18),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.24),
+                        ),
+                      ),
+                      child: const Icon(
+                        Icons.arrow_back_rounded,
+                        color: Colors.white,
+                        size: 26,
+                      ),
                     ),
                   ),
                 ),
-              ),
 
-              const SizedBox(width: 14),
+                const SizedBox(width: 14),
 
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: GoogleFonts.manrope(
-                        color: Colors.white,
-                        fontSize: 21,
-                        fontWeight: FontWeight.w800,
-                        height: 1.1,
-                        letterSpacing: -0.4,
-                      ),
-                    ),
-
-                    if (subtitle != null) ...[
-                      const SizedBox(height: 5),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                       Text(
-                        subtitle,
+                        title,
                         style: GoogleFonts.manrope(
-                          color: Colors.white.withOpacity(0.92),
-                          fontSize: 13.8,
-                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                          fontSize: 21,
+                          fontWeight: FontWeight.w800,
+                          height: 1.1,
+                          letterSpacing: -0.4,
                         ),
                       ),
+
+                      if (subtitle != null) ...[
+                        const SizedBox(height: 5),
+                        Text(
+                          subtitle,
+                          style: GoogleFonts.manrope(
+                            color: Colors.white.withOpacity(0.92),
+                            fontSize: 13.8,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
-              ),
-            ],
-          ),
-        ],
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

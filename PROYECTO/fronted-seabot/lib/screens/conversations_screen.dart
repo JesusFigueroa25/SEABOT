@@ -6,9 +6,11 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:intl/intl.dart';
 import 'package:seabot/core/app_colors.dart';
 import 'package:seabot/core/app_data.dart';
+import 'package:seabot/core/responsive_helper.dart';
 import 'package:seabot/models/conversation.dart';
 import 'package:seabot/repositories/conversation_repository.dart';
 import 'package:seabot/screens/chat_screen.dart';
+import 'package:seabot/screens/widgets/seabot_widgets.dart';
 import 'package:seabot/services/conversation_service.dart';
 
 class ChatsScreen extends StatefulWidget {
@@ -542,7 +544,10 @@ class _ChatsScreenState extends State<ChatsScreen> {
                 children: [
                   _buildHeader(),
                   Expanded(
-                    child: FutureBuilder<List<Conversation>>(
+                    child: ResponsiveHelper.centeredConstraint(
+                      context: context,
+                      maxTabletWidth: 800,
+                      child: FutureBuilder<List<Conversation>>(
                       future: resultados,
                       builder: (context, snapshot) {
                         if (snapshot.connectionState ==
@@ -644,6 +649,7 @@ class _ChatsScreenState extends State<ChatsScreen> {
                           },
                         );
                       },
+                    ),
                     ),
                   ),
                 ],
@@ -817,82 +823,22 @@ class _ChatsScreenState extends State<ChatsScreen> {
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24),
-        child: Container(
-          width: double.infinity,
+        child: SeaBotCard(
           padding: const EdgeInsets.all(28),
-          decoration: BoxDecoration(
-            color: isDark
-                ? const Color(0xFF171C24)
-                : Colors.white.withOpacity(0.95),
-            borderRadius: BorderRadius.circular(28),
-            border: Border.all(
-              color: isDark
-                  ? Colors.white.withOpacity(0.04)
-                  : Colors.black.withOpacity(0.04),
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(isDark ? 0.20 : 0.06),
-                blurRadius: 22,
-                offset: const Offset(0, 12),
-              ),
-            ],
-          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                width: 76,
-                height: 76,
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.12),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.forum_rounded,
-                  color: AppColors.primary,
-                  size: 36,
-                ),
+              const SeaBotEmptyState(
+                icon: Icons.forum_rounded,
+                message: "No hay conversaciones aún",
+                subMessage: "Crea tu primera conversación para empezar a hablar con SeaBot.",
               ),
-              const SizedBox(height: 18),
-              Text(
-                "No hay conversaciones aún",
-                textAlign: TextAlign.center,
-                style: GoogleFonts.manrope(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                  color: isDark ? Colors.white : const Color(0xFF18202A),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                "Crea tu primera conversación para empezar a hablar con SeaBot.",
-                textAlign: TextAlign.center,
-                style: GoogleFonts.manrope(
-                  fontSize: 14,
-                  height: 1.5,
-                  color: isDark ? Colors.white70 : Colors.black54,
-                ),
-              ),
-              const SizedBox(height: 18),
-              FilledButton.icon(
+              const SizedBox(height: 12),
+              SeaBotPrimaryButton(
+                isLoading: _isCreating,
+                icon: Icons.add_rounded,
+                label: "Nueva conversación",
                 onPressed: _isCreating ? null : _nuevoChat,
-                icon: const Icon(Icons.add_rounded),
-                label: Text(
-                  "Nueva conversación",
-                  style: GoogleFonts.manrope(fontWeight: FontWeight.w800),
-                ),
-                style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.secundary,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 14,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
               ),
             ],
           ),
@@ -997,8 +943,11 @@ class _ChatsScreenState extends State<ChatsScreen> {
           ),
         ],
       ),
-      child: Stack(
-        children: [
+      child: ResponsiveHelper.centeredConstraint(
+        context: context,
+        maxTabletWidth: 800,
+        child: Stack(
+          children: [
           Positioned(
             right: -18,
             top: -10,
@@ -1069,6 +1018,7 @@ class _ChatsScreenState extends State<ChatsScreen> {
             ],
           ),
         ],
+      ),
       ),
     );
   }
