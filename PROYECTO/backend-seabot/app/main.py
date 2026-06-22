@@ -8,6 +8,12 @@ Base.metadata.create_all(bind=engine)
 # Inicializar FastAPI
 app = FastAPI(title="SeaBot API", version="1.0")
 
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}
+
+
 # Incluir routers (endpoints)
 app.include_router(support_report_controller.router)
 app.include_router(user_controller.router)
