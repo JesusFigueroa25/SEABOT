@@ -72,8 +72,9 @@ FROM duraciones d
 JOIN mensajes_por_sesion mps
     ON d.conversation_id = mps.conversation_id
    AND d.session_id = mps.session_id
+WHERE d.inicio_sesion >= DATE '2025-11-10'
+  AND d.inicio_sesion < DATE '2025-11-24'
 GROUP BY DATE_TRUNC('week', d.inicio_sesion)
-HAVING COUNT(*) > 1
 ORDER BY semana;
 
     """)
