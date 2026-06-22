@@ -248,14 +248,14 @@ class _ProfileScreenState extends State<ProfileScreen>
     await NotificationService.showNotification(
       title: 'Notificaciones activadas',
       body:
-          'Recibirás recordatorios a las 9:00 AM, 1:00 PM, 6:00 PM y 8:00 PM.',
+          'Recibirás recordatorios a las 9:00 AM, 1:00 PM y 8:00 PM.',
     );
 
     if (!mounted) return;
     setState(() => _notificaciones = true);
     _mostrarSnackNotificaciones(
       message:
-          "Notificaciones activadas\nRecibirás recordatorios a las 9:00 AM, 1:00 PM, 6:00 PM y 8:00 PM.",
+          "Notificaciones activadas\nRecibirás recordatorios a las 9:00 AM, 1:00 PM y 8:00 PM.",
       color: Colors.green,
     );
   }
