@@ -587,8 +587,12 @@ class _EvolutionScreenState extends State<EvolutionScreen> {
                   color: getPhqColor(score).withOpacity(0.18),
                   shape: BoxShape.circle,
                 ),
-                child: const Center(
-                  child: Text("🩹", style: TextStyle(fontSize: 26)),
+                child: Center(
+                  child: Icon(
+                    Icons.psychology_rounded,
+                    size: 28,
+                    color: getPhqColor(score),
+                  ),
                 ),
               ),
               const SizedBox(width: 14),
