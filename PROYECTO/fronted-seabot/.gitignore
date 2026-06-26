@@ -43,3 +43,16 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Variables de entorno y secretos
+env.destino.yaml
+*.env
+.env*
+
+
+# Variables de entorno y secretos del backend
+PROYECTO/backend-seabot/env.destino.yaml
+
+# Archivos locales de configuración y base de datos
+PROYECTO/fronted-seabot/lib/core/app_api.dart
+seabot_schema.sql

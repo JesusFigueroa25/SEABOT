@@ -1,6 +1,5 @@
 from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
-from datetime import datetime
 from app.database.database import Base
 
 class SupportReport(Base):
@@ -12,7 +11,7 @@ class SupportReport(Base):
     description = Column(Text, nullable=False)
     status = Column(String(30), nullable=False, default="Recibido")
     ruta_foto = Column(Text)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, nullable=False)
+    updated_at = Column(DateTime, nullable=True)
 
     student = relationship("Student", back_populates="reports")

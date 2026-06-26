@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, ForeignKey, Boolean, Date, DateTime
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, Boolean, Date, DateTime, text
 from sqlalchemy.orm import relationship
 from app.database.database import Base
 
@@ -11,7 +11,7 @@ class Student(Base):
     alias = Column(String(50), nullable=False)  
     safe_contact = Column(String(10), nullable=False)
     correo = Column(String(120), unique=True, nullable=True, index=True)
-    correo_verificado = Column(Boolean, nullable=False, default=False)
+    correo_verificado = Column(Boolean, nullable=False, default=False, server_default=text("false"))
     correo_verified_at = Column(DateTime, nullable=True)
 
      # Relaciones 1:1

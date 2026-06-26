@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, func
 from sqlalchemy.orm import relationship
 from app.database.database import Base
 
@@ -9,7 +9,7 @@ class PasswordResetToken(Base):
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     codigo = Column(String(10), nullable=False)
     expires_at = Column(DateTime, nullable=False)
-    used = Column(Boolean, default=False, nullable=False)
+    used = Column(Boolean, default=False, nullable=False, server_default="false")
     created_at = Column(DateTime, nullable=False)
 
     user = relationship("User")

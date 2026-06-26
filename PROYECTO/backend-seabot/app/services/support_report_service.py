@@ -1,5 +1,4 @@
 from sqlalchemy.orm import Session
-from app.models.student_model import Student
 from app.repositories import support_report_repository
 from app.schemas.support_report_schema import SupportReportCreate, SupportReportUpdate, SupportReportUpdateAdmin
 from fastapi import UploadFile
@@ -9,6 +8,7 @@ from app.core.config import settings
 from app.services.gcs_service import generate_signed_url
 from app.models.student_model import Student
 from app.services.email_service import send_support_admin_response_to_user
+from app.utils.datetime_utils import now_lima_naive
 
 ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp", "image/jpg"}
 
@@ -83,7 +83,6 @@ def modify(db: Session, object_id: int, objecto: SupportReportUpdate, foto: Uplo
 
     return support_report_repository.update(db, object_id, objecto)
 
-
 ALLOWED_STATUS = ["Recibido", "En proceso", "Cerrado"]
 def patch(db: Session, object_id: int, objecto: SupportReportUpdateAdmin):
     if objecto.status is not None and objecto.status not in ALLOWED_STATUS:
@@ -92,8 +91,6 @@ def patch(db: Session, object_id: int, objecto: SupportReportUpdateAdmin):
 
 def remove(db: Session, object_id: int):
     return support_report_repository.delete(db, object_id)
-
- 
 
 def list_all_admin(db: Session):
     reports = support_report_repository.get(db)
@@ -114,7 +111,6 @@ def list_all_admin(db: Session):
         })
 
     return result
-
 
 def get_report_signed_image(db: Session, report_id: int):
     report = support_report_repository.get_by_id(db, report_id)
@@ -155,6 +151,7 @@ def send_admin_email_to_user(db: Session, report_id: int, subject: str, message:
             raise ValueError("Estado no válido. Use: Recibido, En proceso o Cerrado")
 
         report.status = status
+        report.updated_at = now_lima_naive()
         db.commit()
         db.refresh(report)
 

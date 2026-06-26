@@ -3,9 +3,8 @@ from sqlalchemy.orm import Session
 from app.models.conversation_model import Conversation
 from app.schemas.conversation_schemas import ConversationCreate, ConversationUpdate, ConversationUpdateName, ConversationUpdateCal
 from sqlalchemy import desc, asc
-from app.utils.datetime_utils import to_lima_naive
+from app.utils.datetime_utils import to_lima_naive, now_lima_naive
 
-#Cambiar de clase "schema"
 def get(db: Session):
     return db.query(Conversation).all()
 
@@ -79,8 +78,8 @@ def create(db: Session, objeto: ConversationCreate):
         openai_id=objeto.openai_id, 
         name_conversation=objeto.name_conversation, 
         qualification=objeto.qualification, 
-        fecha_inicio=to_lima_naive(objeto.fecha_inicio), 
-        enable=objeto.enable, 
+        fecha_inicio=to_lima_naive(objeto.fecha_inicio) if objeto.fecha_inicio else now_lima_naive(),
+        enable=objeto.enable if objeto.enable is not None else True,
         student_id=objeto.student_id,
     )
     db.add(db_object)

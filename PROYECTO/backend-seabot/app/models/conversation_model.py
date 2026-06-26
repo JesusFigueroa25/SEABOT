@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, ForeignKey, Boolean, Date, DateTime,Text
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, Boolean, Date, DateTime,Text, text
 from sqlalchemy.orm import relationship
 from app.database.database import Base
 
@@ -11,8 +11,8 @@ class Conversation(Base):
     openai_id = Column(Text)  
     name_conversation = Column(String(100))
     qualification = Column(Integer)
-    fecha_inicio = Column(DateTime)
-    enable = Column(Boolean)
+    fecha_inicio = Column(DateTime, nullable=False)
+    enable = Column(Boolean, nullable=False, server_default=text("true"), default=True)
     conversation_summary = Column(Text)  
 
 

@@ -8,6 +8,7 @@ from app.models.user_model import User
 from app.repositories import password_reset_repository, user_repository
 from app.security.auth import hash_password
 from app.services.email_service import send_reset_email
+from app.utils.datetime_utils import now_lima_naive
 
 def _generate_otp_code() -> str:
     return str(random.randint(100000, 999999))
@@ -27,14 +28,14 @@ def request_password_reset(db: Session, correo: str):
     password_reset_repository.invalidate_user_tokens(db, user.id)
 
     otp_code = _generate_otp_code()
-    expires_at = datetime.utcnow() + timedelta(minutes=15)
+    now = now_lima_naive()
 
     token_row = PasswordResetToken(
         user_id=user.id,
         codigo=otp_code,
-        expires_at=expires_at,
+        expires_at=now + timedelta(minutes=15),
         used=False,
-        created_at=datetime.utcnow()
+        created_at=now
     )
 
     password_reset_repository.create(db, token_row)

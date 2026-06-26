@@ -10,7 +10,7 @@ class Summary(Base):
     conversation_id = Column(Integer, ForeignKey("conversations.id", ondelete="CASCADE"), nullable=False)
     start_message_id = Column(Integer)  
     end_message_id = Column(Integer)  
-    resumen = Column(Text)  
-    fecha_hora = Column(DateTime)
+    resumen = Column(Text, nullable=False)
+    fecha_hora = Column(DateTime, nullable=False)
 
     conversation = relationship("Conversation", back_populates="sumaries")
