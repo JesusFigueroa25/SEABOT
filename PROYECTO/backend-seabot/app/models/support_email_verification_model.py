@@ -1,5 +1,6 @@
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey
 from datetime import datetime
+from sqlalchemy.orm import relationship
 from app.database.database import Base
 
 
@@ -11,4 +12,6 @@ class SupportEmailVerificationToken(Base):
     codigo = Column(String(10), nullable=False)
     expires_at = Column(DateTime, nullable=False)
     used = Column(Boolean, nullable=False, default=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, nullable=False)
+
+    student = relationship("Student")

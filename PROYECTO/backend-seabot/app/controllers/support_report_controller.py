@@ -64,7 +64,7 @@ def delete(Obj_id: int, db: Session = Depends(get_db)):
     return support_report_service.remove(db, Obj_id)
 
  #Soporte
-#POST /supports/email/send-code
+
 @router.post("/email/send-code")
 def send_support_email_code(
     data: SupportEmailOtpRequest,
@@ -78,7 +78,6 @@ def send_support_email_code(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-#POST /supports/email/verify-code
 @router.post("/email/verify-code")
 def verify_support_email_code(
     data: SupportEmailOtpVerify,
@@ -93,7 +92,6 @@ def verify_support_email_code(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-
 @router.get("/email/status/{student_id}")
 def get_support_email_status(
     student_id: int,
@@ -107,12 +105,10 @@ def get_support_email_status(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     
-    
 
 @router.get("/admin/list", response_model=list[SupportReportAdminOut])
 def get_reports_admin(db: Session = Depends(get_db)):
     return support_report_service.list_all_admin(db)
-
 
 @router.get("/admin/{report_id}/image-url", response_model=SupportReportImageUrlOut)
 def get_report_image_url(report_id: int, db: Session = Depends(get_db)):
@@ -120,7 +116,6 @@ def get_report_image_url(report_id: int, db: Session = Depends(get_db)):
         return support_report_service.get_report_signed_image(db, report_id)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    
     
 @router.post("/admin/{report_id}/send-email")
 def send_admin_email_to_report_user(

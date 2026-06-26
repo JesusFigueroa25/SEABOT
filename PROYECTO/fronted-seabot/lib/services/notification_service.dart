@@ -69,7 +69,13 @@ class NotificationService {
   static const String _testChannelName = 'Pruebas';
   static const AndroidScheduleMode _dailyScheduleMode =
       AndroidScheduleMode.inexactAllowWhileIdle;
-  static const Set<int> _dailyNotificationIds = <int>{1, 2, 3, 4};
+
+  static const Set<int> _dailyNotificationIds = <int>{1, 2, 3};
+
+  // Incluye el ID 4 como legado para cancelar notificaciones antiguas
+  // que pudieron quedar programadas antes de corregir CP0065.
+  static const Set<int> _dailyNotificationCancellationIds = <int>{1, 2, 3, 4};
+
   static const List<_DailyReminder> _dailyReminders = <_DailyReminder>[
     _DailyReminder(
       id: 1,
@@ -87,15 +93,7 @@ class NotificationService {
     ),
     _DailyReminder(
       id: 3,
-      title: 'Cierre de la tarde 🌙',
-      body:
-          'Antes de terminar la tarde, puedes conversar un momento con SeaBot.',
-      hour: 18,
-      minute: 0,
-    ),
-    _DailyReminder(
-      id: 4,
-      title: 'Pausa de la noche 🌤️',
+      title: 'Cierre del día 🌙',
       body: 'Antes de dormir, puedes registrar tu estado emocional en SeaBot.',
       hour: 20,
       minute: 0,
@@ -678,9 +676,9 @@ class NotificationService {
 
   static Future<void> cancelDailyNotifications() async {
     _log(
-      'Cancelando notificaciones diarias: ids=${_formatIds(_dailyNotificationIds)}',
+      'Cancelando notificaciones diarias: ids=${_formatIds(_dailyNotificationCancellationIds)}',
     );
-    for (final id in _dailyNotificationIds) {
+    for (final id in _dailyNotificationCancellationIds) {
       await _notifications.cancel(id);
     }
   }

@@ -1,13 +1,17 @@
 import os
+from dotenv import load_dotenv
+
+# Carga las variables desde tu archivo .env
+load_dotenv()
 
 class Settings:
-    GCS_BUCKET_NAME: str = os.getenv("GCS_BUCKET_NAME", "seabot-reportes")
-    GCS_FOLDER_ALERTS: str = os.getenv("GCS_FOLDER_ALERTS", "support_reports")
-    GCS_PROJECT_ID: str = os.getenv("GCS_PROJECT_ID", "project-4f6f56a7-11ef-44b7-995")
+    # Si la variable no existe en el .env, el valor será None
+    GCS_BUCKET_NAME: str | None = os.getenv("GCS_BUCKET_NAME")
+    GCS_FOLDER_ALERTS: str | None = os.getenv("GCS_FOLDER_ALERTS")
+    GCS_PROJECT_ID: str | None = os.getenv("GCS_PROJECT_ID")
     
-    SUPPORT_ADMIN_EMAIL: str = os.getenv("SUPPORT_ADMIN_EMAIL","soporte25upc@gmail.com")
-     # Google Cloud Storage
-    GCS_SIGNER_SERVICE_ACCOUNT: str = os.getenv("GCS_SIGNER_SERVICE_ACCOUNT","993787742289-compute@developer.gserviceaccount.com")
+    SUPPORT_ADMIN_EMAIL: str | None = os.getenv("SUPPORT_ADMIN_EMAIL")
+    # Google Cloud Storage
+    GCS_SIGNER_SERVICE_ACCOUNT: str | None = os.getenv("GCS_SIGNER_SERVICE_ACCOUNT")
 
-    
 settings = Settings()

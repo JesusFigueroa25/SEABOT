@@ -1,8 +1,10 @@
 import os
 import smtplib
+from dotenv import load_dotenv
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
+load_dotenv()
 
 def send_reset_email(to_email: str, codigo: str):
     smtp_host = os.getenv("SMTP_HOST")

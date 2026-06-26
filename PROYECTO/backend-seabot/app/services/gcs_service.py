@@ -1,38 +1,37 @@
+import os
 from uuid import uuid4
-from google.cloud import storage
 from fastapi import UploadFile
-from datetime import timedelta
+from google.cloud import storage
 from datetime import timedelta
 import google.auth
 from google.auth.transport.requests import Request
-from google.cloud import storage
 from app.core.config import settings
 
-# En storage_service.py
 def upload_support_report_image(file: UploadFile, student_id: int) -> str:
-    # Asegúrate de que el cliente use el proyecto de cuota si es necesario
-    client = storage.Client(settings.GCS_PROJECT_ID) 
+    # 1. Inicializar cliente y bucket explícitamente
+    client = storage.Client(project=settings.GCS_PROJECT_ID) 
     bucket = client.bucket(settings.GCS_BUCKET_NAME)
 
+    # 2. Extraer extensión de forma más segura (usando os.path)
     extension = ""
-    if file.filename and "." in file.filename:
-        extension = "." + file.filename.split(".")[-1].lower()
+    if file.filename:
+        _, ext = os.path.splitext(file.filename)
+        extension = ext.lower()
 
+    # 3. Construir la ruta (blob name)
     blob_name = f"{settings.GCS_FOLDER_ALERTS}/student_{student_id}/{uuid4().hex}{extension}"
     blob = bucket.blob(blob_name)
 
-    # CORRECCIÓN: Asegurar que el puntero esté al inicio antes de leer
+    # 4. Asegurar que el puntero esté al inicio
     file.file.seek(0) 
-    content = file.file.read() 
     
-    blob.upload_from_string(
-        content,
+    # 5. MEJORA: Subir directamente desde el objeto file (Stream) en lugar de RAM
+    blob.upload_from_file(
+        file.file,
         content_type=file.content_type
     )
 
     return blob_name
-
-
 
 
 def generate_signed_url(blob_name: str, expiration_minutes: int = 15) -> str:

@@ -415,17 +415,23 @@ class _AdminResourcesScreenState extends State<AdminResourcesScreen> {
                 child: SeaBotEmptyState(
                   icon: Icons.article_rounded,
                   message: "No hay recursos aún.",
-                  subMessage: "Crea recursos de apoyo emocional usando el botón +.",
+                  subMessage:
+                      "Crea recursos de apoyo emocional usando el botón +.",
                 ),
               );
             }
 
             // 🔹 4. DATA OK
             final data = snapshot.data!;
+            final bottomPadding = MediaQuery.paddingOf(context).bottom + 120;
+
             return ResponsiveHelper.centeredConstraint(
               context: context,
               maxTabletWidth: 800,
-              child: ListView(children: data.map(_buildResourceCard).toList()),
+              child: ListView(
+                padding: EdgeInsets.only(bottom: bottomPadding),
+                children: data.map(_buildResourceCard).toList(),
+              ),
             );
           },
         ),

@@ -9,7 +9,7 @@ class EmotionalRegister(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     student_id = Column(Integer, ForeignKey("students.id", ondelete="CASCADE"), nullable=False)
-    emotion = Column(String(30), nullable=False)  
+    emotion = Column(String(30))  
     fecha_hora = Column(DateTime)
 
     student = relationship("Student", back_populates="emotionalRegisters")

@@ -1,15 +1,14 @@
 from sqlalchemy.orm import Session
 from app.models.summary_model import Summary
 from app.schemas.summary_schemas import SummaryCreate, SummaryUpdate
-from app.utils.datetime_utils import to_lima_naive
+from app.utils.datetime_utils import to_lima_naive, now_lima_naive
 
 def create(db: Session, objeto: SummaryCreate):
-    #Colocar todos los atributos correctos
     db_object = Summary(
         start_message_id=objeto.start_message_id, 
         end_message_id=objeto.end_message_id, 
         resumen=objeto.resumen, 
-        fecha_hora=to_lima_naive(objeto.fecha_hora),
+        fecha_hora=to_lima_naive(objeto.fecha_hora) if objeto.fecha_hora else now_lima_naive(),
         conversation_id=objeto.conversation_id,
     )
     db.add(db_object)
@@ -20,7 +19,6 @@ def create(db: Session, objeto: SummaryCreate):
 def update(db: Session, object_id: int, objeto: SummaryUpdate):
     db_object = get_by_id(db, object_id)
     if db_object:
-    #Colocar todos los atributos correctos
         db_object.start_message_id = objeto.start_message_id
         db_object.end_message_id = objeto.end_message_id
         db_object.resumen = objeto.resumen

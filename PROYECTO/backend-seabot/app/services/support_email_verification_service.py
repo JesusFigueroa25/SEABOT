@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from app.models.student_model import Student
 from app.models.support_email_verification_model import SupportEmailVerificationToken
 from app.services.email_service import send_support_otp_email
-
+from app.utils.datetime_utils import now_lima_naive
 
 def generate_support_email_otp(db: Session, student_id: int):
     student = db.query(Student).filter(Student.id == student_id).first()
@@ -31,12 +31,19 @@ def generate_support_email_otp(db: Session, student_id: int):
         raise ValueError("El correo registrado debe ser una cuenta de Gmail")
 
     codigo = str(random.randint(100000, 999999))
+    now = now_lima_naive()
+
+    db.query(SupportEmailVerificationToken).filter(
+        SupportEmailVerificationToken.student_id == student.id,
+        SupportEmailVerificationToken.used == False
+    ).update({"used": True})
 
     token = SupportEmailVerificationToken(
         student_id=student.id,
         codigo=codigo,
-        expires_at=datetime.utcnow() + timedelta(minutes=10),
-        used=False
+        expires_at=now + timedelta(minutes=10),
+        used=False,
+        created_at=now,
     )
 
     db.add(token)
@@ -82,13 +89,16 @@ def verify_support_email_otp(db: Session, student_id: int, codigo: str):
 
     if not token:
         raise ValueError("Código inválido")
+    
+    now = now_lima_naive()
 
-    if token.expires_at < datetime.utcnow():
+
+    if token.expires_at < now:
         raise ValueError("El código ha expirado")
 
     token.used = True
     student.correo_verificado = True
-    student.correo_verified_at = datetime.utcnow()
+    student.correo_verified_at = now
 
     db.commit()
 
